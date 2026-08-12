@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jacktan-studio.pages.dev/sitemap.xml
