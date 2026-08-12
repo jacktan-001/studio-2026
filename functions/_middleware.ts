@@ -97,14 +97,18 @@ export async function onRequest(context: {
   const url = new URL(context.request.url)
   const pathname = url.pathname
 
-  // ── 真 404（仅对 HTML 导航类 GET 请求生效）──────────────────────
-  // 排除：已知路由、静态资源（带扩展名）、/api/*（由 Functions 自行处理）。
+  // ── 非 HTML GET（静态资源 / API / 非 GET 请求）→ 原样透传 ──────────
+  // 这些由 Cloudflare 静态层 / 对应 Function 自行处理，中间件不干预。
   if (
-    context.request.method === 'GET' &&
-    !hasFileExtension(pathname) &&
-    !pathname.startsWith('/api/') &&
-    !isKnownRoute(pathname)
+    context.request.method !== 'GET' ||
+    hasFileExtension(pathname) ||
+    pathname.startsWith('/api/')
   ) {
+    return context.next()
+  }
+
+  // ── 未知路径（垃圾 URL）→ 真 404 ────────────────────────────────
+  if (!isKnownRoute(pathname)) {
     try {
       const asset = await context.env.ASSETS.fetch(
         new Request(new URL('/404.html', url.origin).toString()),
@@ -120,16 +124,20 @@ export async function onRequest(context: {
     }
   }
 
-  const response = await context.next()
-  const contentType = response.headers.get('content-type') || ''
-  if (!contentType.includes('text/html')) return response
+  // ── 已知 SPA 路由 → 直接取 index.html ───────────────────────────
+  // 注意：Pages Function（含本中间件）存在时，_redirects 的
+  // `/* /index.html 200` SPA 回退会被绕过，深链会落到 404。因此这里
+  // 手动用 ASSETS 取首页，保证 /jack-wave 等深链正常渲染，而非依赖
+  // 已被 Function 拦截的 _redirects。
+  const asset = await context.env.ASSETS.fetch(
+    new Request(new URL('/index.html', url.origin).toString()),
+  )
+  let html = await asset.text()
 
-  const meta = resolveMeta(url.pathname)
-
+  const meta = resolveMeta(pathname)
   const absImage = url.origin + meta.avatar
-  const absUrl = url.origin + url.pathname
+  const absUrl = url.origin + pathname
 
-  let html = await response.text()
   html = setMeta(html, 'property', 'og:title', meta.title)
   html = setMeta(html, 'property', 'og:image', absImage)
   html = setMeta(html, 'property', 'og:image:width', '512')
@@ -139,7 +147,8 @@ export async function onRequest(context: {
   html = setMeta(html, 'name', 'twitter:title', meta.title)
   html = setMeta(html, 'name', 'description', meta.desc)
 
-  const headers = new Headers(response.headers)
-  headers.delete('content-length')
-  return new Response(html, { status: response.status, headers })
+  return new Response(html, {
+    status: 200,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' },
+  })
 }
