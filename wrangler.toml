@@ -1,0 +1,10 @@
+name = "studio-2026"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-08-01"
+
+# KV 绑定：新系统主存储。
+# 注：ADMIN_PASSWORD 通过 `wrangler pages secret put` 注入（不在文件中明文）。
+# 老系统 JACK_WAVE_KV 仍可在 Dashboard 一并绑定作为迁移期兜底。
+kv_namespaces = [
+  { binding = "STUDIO_KV", id = "9b09a9305fbb4ed0b9754ad202079327" }
+]

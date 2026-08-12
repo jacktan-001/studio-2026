@@ -1,0 +1,33 @@
+{
+  "name": "studio-2026",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Jack Tan Studio 2026 — dark Pacome surface + Apple scroll narrative, persistent global audio, per-project themes.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "typecheck:functions": "tsc -p functions/tsconfig.json",
+    "preview": "vite preview --port 4180 --host",
+    "gen:audio": "python3 scripts/gen-audio.py"
+  },
+  "dependencies": {
+    "gsap": "^3.13.0",
+    "heic2any": "^0.0.4",
+    "lenis": "^1.1.18",
+    "motion": "^11.18.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260810.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.7"
+  }
+}
