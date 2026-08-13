@@ -204,10 +204,13 @@ export async function onRequest(context: {
   const url = new URL(context.request.url)
   const pathname = url.pathname
 
-  // ── 非 HTML GET（静态资源 / API / 非 GET 请求）→ 原样透传 ──────────
+  // ── 非 HTML GET/HEAD（静态资源 / API / 其他方法）→ 原样透传 ──────
   // 这些由 Cloudflare 静态层 / 对应 Function 自行处理，中间件不干预。
+  // 注意 HEAD 必须与 GET 同等处理：否则 HEAD 会穿透到静态层，
+  // 带回平台默认的 Access-Control-Allow-Origin:*（审计 ACAO 残留项）。
+  const method = context.request.method
   if (
-    context.request.method !== 'GET' ||
+    (method !== 'GET' && method !== 'HEAD') ||
     hasFileExtension(pathname) ||
     pathname.startsWith('/api/')
   ) {

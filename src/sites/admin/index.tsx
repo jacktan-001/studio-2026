@@ -10,7 +10,7 @@ import { MONTHLY_SHARES } from '../jack-wave/monthlyData'
 
 const TOKEN_KEY = 'studio_admin_pw'
 
-type Tab = 'playlists' | 'submissions'
+type Tab = 'playlists' | 'submissions' | 'stats'
 
 // ── 统一 API 封装：自动带鉴权头，401 视为登录失效 ──────────
 async function api(path: string, opts: RequestInit = {}): Promise<Response> {
@@ -143,13 +143,21 @@ export default function Admin() {
         >
           投稿审核
         </button>
+        <button
+          className={`admin-tab ${tab === 'stats' ? 'is-active' : ''}`}
+          onClick={() => setTab('stats')}
+        >
+          访问统计
+        </button>
       </nav>
 
       <main className="admin-main">
         {tab === 'playlists' ? (
           <PlaylistsPanel onToast={flash} />
-        ) : (
+        ) : tab === 'submissions' ? (
           <SubmissionsPanel onToast={flash} />
+        ) : (
+          <StatsPanel />
         )}
       </main>
 
@@ -497,6 +505,124 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
             </article>
           ))}
         </div>
+      )}
+    </section>
+  )
+}
+
+// ── 访问统计面板 ─────────────────────────────────────────────
+interface StatDay {
+  date: string
+  pv: number
+  uv: number
+  paths: Record<string, number>
+  refs: Record<string, number>
+}
+
+const ROUTE_NAMES: Record<string, string> = {
+  '/': '门户',
+  '/jack-tan': 'Jack Tan',
+  '/jack-pose': 'Jack Pose',
+  '/jack-wave': 'Jack Wave',
+  '/jack-talk': 'Jack Talk',
+  '/jack-craft': 'Jack Craft',
+}
+
+function StatsPanel() {
+  const [days, setDays] = useState<StatDay[]>([])
+  const [totalPv, setTotalPv] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setErr(false)
+    try {
+      const res = await api('/api/stats?days=14')
+      if (!res.ok) throw new Error('HTTP ' + res.status)
+      const json = await res.json()
+      setDays(Array.isArray(json.days) ? json.days : [])
+      setTotalPv(json.totalPv || 0)
+    } catch (e) {
+      if ((e as Error).message !== 'AUTH') setErr(true)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const top = (m: Record<string, number>, n: number) =>
+    Object.entries(m)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+
+  return (
+    <section className="admin-panel">
+      <div className="admin-panel-head">
+        <div>
+          <h2 className="admin-h2">访问统计 · 近 14 天</h2>
+          <p className="admin-meta">
+            自托管轻量统计：仅记录路径与来源域，无 Cookie、无指纹、尊重 DNT · 合计{' '}
+            <span className="admin-tag">{totalPv} 次浏览</span>
+          </p>
+        </div>
+        <div className="admin-actions">
+          <button className="admin-btn admin-btn--ghost" onClick={load}>
+            刷新
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="admin-loading">加载中…</div>
+      ) : err ? (
+        <div className="admin-empty">统计读取失败，请稍后重试</div>
+      ) : (
+        <table className="admin-stats-table">
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>PV</th>
+              <th>UV</th>
+              <th>页面分布</th>
+              <th>外部来源</th>
+            </tr>
+          </thead>
+          <tbody>
+            {days.map((d) => (
+              <tr key={d.date}>
+                <td className="admin-stats-num">{d.date}</td>
+                <td className="admin-stats-num">{d.pv}</td>
+                <td className="admin-stats-num">{d.uv}</td>
+                <td>
+                  {d.pv === 0 ? (
+                    <span className="admin-meta">—</span>
+                  ) : (
+                    top(d.paths, 6).map(([k, v]) => (
+                      <span className="admin-chip" key={k}>
+                        {ROUTE_NAMES[k] || k} {v}
+                      </span>
+                    ))
+                  )}
+                </td>
+                <td>
+                  {Object.keys(d.refs).length === 0 ? (
+                    <span className="admin-meta">—</span>
+                  ) : (
+                    top(d.refs, 4).map(([k, v]) => (
+                      <span className="admin-chip" key={k}>
+                        {k} {v}
+                      </span>
+                    ))
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </section>
   )

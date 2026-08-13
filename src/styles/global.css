@@ -5287,3 +5287,32 @@ html.cursor-hover-active-host {
   height: clamp(76px, 11vw, 104px);
   margin-bottom: 22px;
 }
+
+/* ── 管理后台 · 访问统计表 ─────────────────────────────── */
+.admin-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.admin-stats-table th,
+.admin-stats-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.admin-stats-table th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.admin-stats-num {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.admin-stats-table .admin-chip {
+  margin: 0 6px 4px 0;
+}
