@@ -5671,6 +5671,121 @@ html.cursor-hover-active-host {
   box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.25);
 }
 
+/* ── Notes · 电流感交互（滋啦颤动 / 高频闪烁 / 闪电过渡）─────────── */
+/* 1) 微电流颤动：高频、小幅、带阶梯感，像被轻微电击 */
+@keyframes elec-tremor {
+  0%   { transform: translate(0, 0) rotate(0); }
+  15%  { transform: translate(0.8px, -0.6px) rotate(0.15deg); }
+  30%  { transform: translate(-0.7px, 0.5px) rotate(-0.12deg); }
+  45%  { transform: translate(0.6px, 0.7px) rotate(0.1deg); }
+  60%  { transform: translate(-0.5px, -0.4px) rotate(-0.08deg); }
+  75%  { transform: translate(0.4px, 0.5px) rotate(0.06deg); }
+  100% { transform: translate(0, 0) rotate(0); }
+}
+/* 2) 高频闪烁发光描边：亮金描边在瞬间噼啪明灭 */
+@keyframes elec-flicker {
+  0%   { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0), 0 0 0 0 rgba(var(--accent-rgb), 0); border-color: rgba(var(--accent-rgb), 0.3); }
+  20%  { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.95), 0 0 22px 3px rgba(var(--accent-rgb), 0.75); border-color: rgba(var(--accent-rgb), 0.95); }
+  40%  { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.2), 0 0 6px 0 rgba(var(--accent-rgb), 0.25); border-color: rgba(var(--accent-rgb), 0.3); }
+  60%  { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 1), 0 0 26px 4px rgba(var(--accent-rgb), 0.85); border-color: rgba(var(--accent-rgb), 1); }
+  80%  { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.35), 0 0 10px 1px rgba(var(--accent-rgb), 0.4); border-color: rgba(var(--accent-rgb), 0.45); }
+  100% { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.5), 0 0 16px 2px rgba(var(--accent-rgb), 0.35); border-color: rgba(var(--accent-rgb), 0.6); }
+}
+.is-zapping {
+  animation: elec-tremor 0.2s steps(2, end) 1, elec-flicker 0.34s linear 1;
+  will-change: transform, box-shadow;
+}
+/* hover 时持续微弱的电流呼吸描边（区别于默认无边框） */
+.notes-item-link:hover,
+.notes-back:hover {
+  border-color: rgba(var(--accent-rgb), 0.55) !important;
+}
+
+/* 3) 闪电划过式过渡：亮金色电光斜划全屏 + 点击点辉光 */
+.elec-swipe {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  pointer-events: none;
+  overflow: hidden;
+}
+.elec-swipe .elec-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    240px 240px at var(--ox, 50%) var(--oy, 50%),
+    rgba(var(--accent-rgb), 0.42),
+    rgba(var(--accent-rgb), 0.12) 36%,
+    transparent 62%
+  );
+  animation: elec-flash 0.36s ease-out 1;
+}
+.elec-swipe .elec-ray {
+  position: absolute;
+  top: -20%;
+  left: -40%;
+  width: 36%;
+  height: 140%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(var(--accent-rgb), 0) 30%,
+    rgba(var(--accent-rgb), 0.85) 48%,
+    rgba(255, 255, 255, 0.98) 50%,
+    rgba(var(--accent-rgb), 0.85) 52%,
+    transparent 70%
+  );
+  filter: blur(0.6px) drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.9));
+  transform: translateX(-50%) skewX(-14deg);
+  animation: elec-swipe-move 0.34s cubic-bezier(0.18, 0.8, 0.2, 1) 1;
+}
+.elec-swipe .elec-ray.b {
+  width: 22%;
+  opacity: 0.7;
+  animation-delay: 0.05s;
+  animation-duration: 0.3s;
+}
+@keyframes elec-swipe-move {
+  0%   { transform: translateX(-50%) skewX(-14deg); opacity: 0; }
+  12%  { opacity: 1; }
+  100% { transform: translateX(480%) skewX(-14deg); opacity: 0; }
+}
+@keyframes elec-flash {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* 4) 点击迸发的细小电火花 */
+.elec-spark {
+  position: fixed;
+  z-index: 96;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.elec-spark i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: 2px;
+  background: #fff;
+  box-shadow: 0 0 8px 2px rgba(var(--accent-rgb), 0.95);
+  border-radius: 50%;
+  transform-origin: 0 0;
+  animation: elec-spark-fly 0.3s ease-out forwards;
+}
+@keyframes elec-spark-fly {
+  0%   { transform: rotate(var(--a)) translateY(0) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--a)) translateY(26px) scale(0.2); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-zapping { animation: elec-flicker 0.2s linear 1; }
+  .elec-swipe .elec-ray { display: none; }
+}
+
 /* ── 文章详情 ────────────────────────────────────────────── */
 .notes-article {
   padding-top: 40px;

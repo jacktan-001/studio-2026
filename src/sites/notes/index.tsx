@@ -10,7 +10,7 @@
 // 数据源：/api/public-articles（公开只读，max-age=60）。
 // ============================================================
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { SplitHeading } from '../../system/SplitHeading'
@@ -69,9 +69,91 @@ function useArticles() {
   return { articles, loading, failed }
 }
 
+// ── 电流感交互：滋啦颤动 / 高频闪烁描边 / 闪电划过过渡 ──────────
+function prefersReduced(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    !!window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
+/** 在元素上触发一次性的「微电流颤动 + 高频闪烁描边」。 */
+function zapEl(el: Element | null) {
+  if (!el) return
+  const node = el as HTMLElement
+  node.classList.remove('is-zapping')
+  void node.offsetWidth // 强制 reflow，重新触发动画
+  node.classList.add('is-zapping')
+  window.setTimeout(() => node.classList.remove('is-zapping'), 380)
+}
+
+/** 闪电划过：全屏覆盖层，亮金色电光斜划而过 + 点击点辉光。 */
+function ElectricSwipe({ x, y, onDone }: { x: number; y: number; onDone: () => void }) {
+  useEffect(() => {
+    const t = window.setTimeout(onDone, 400)
+    return () => window.clearTimeout(t)
+  }, [onDone])
+  return (
+    <div
+      className="elec-swipe"
+      aria-hidden="true"
+      style={{ ['--ox' as string]: `${x}px`, ['--oy' as string]: `${y}px` } as any}
+    >
+      <span className="elec-flash" />
+      <span className="elec-ray" />
+      <span className="elec-ray b" />
+    </div>
+  )
+}
+
+/** 点击迸发的细小电火花，从点击点向四周飞散。 */
+function SparkBurst({ x, y, onDone }: { x: number; y: number; onDone: () => void }) {
+  useEffect(() => {
+    const t = window.setTimeout(onDone, 340)
+    return () => window.clearTimeout(t)
+  }, [onDone])
+  const N = 10
+  return (
+    <span className="elec-spark" style={{ left: `${x}px`, top: `${y}px` }} aria-hidden="true">
+      {Array.from({ length: N }).map((_, i) => (
+        <i key={i} style={{ ['--a' as string]: `${((360 / N) * i).toFixed(1)}deg` } as any} />
+      ))}
+    </span>
+  )
+}
+
+/** 提供 zap(元素) / fireSwipe(x,y) 以及需要渲染的 overlay 节点。 */
+function useElectric() {
+  const [swipe, setSwipe] = useState<{ x: number; y: number; id: number } | null>(null)
+  const [sparks, setSparks] = useState<{ x: number; y: number; id: number } | null>(null)
+
+  const zap = (el: Element | null) => zapEl(el)
+
+  const fireSwipe = (x: number, y: number) => {
+    setSparks({ x, y, id: Date.now() })
+    setSwipe({ x, y, id: Date.now() })
+  }
+
+  const overlay = (
+    <>
+      {swipe && (
+        <ElectricSwipe key={swipe.id} x={swipe.x} y={swipe.y} onDone={() => setSwipe(null)} />
+      )}
+      {sparks && (
+        <SparkBurst key={sparks.id} x={sparks.x} y={sparks.y} onDone={() => setSparks(null)} />
+      )}
+    </>
+  )
+
+  return { zap, fireSwipe, overlay }
+}
+
 // ── 列表页 ─────────────────────────────────────────────────
 export default function Notes() {
   const { articles, loading, failed } = useArticles()
+  const navigate = useNavigate()
+  const elec = useElectric()
 
   const tagCount = useMemo(() => {
     const s = new Set<string>()
@@ -121,14 +203,24 @@ export default function Notes() {
           <ul className="notes-list">
             {articles.map((a) => (
               <Reveal as="li" key={a.slug} className="notes-item">
-                <Link to={`/notes/${a.slug}`} className="notes-item-link">
+                <Link
+                  to={`/notes/${a.slug}`}
+                  className="notes-item-link"
+                  onMouseDown={(e) => elec.zap(e.currentTarget)}
+                  onMouseEnter={(e) => elec.zap(e.currentTarget)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    elec.fireSwipe(e.clientX, e.clientY)
+                    window.setTimeout(() => navigate(`/notes/${a.slug}`), 320)
+                  }}
+                >
                   <span className="notes-item-date">{fmtDate(a.publishedAt)}</span>
                   <span className="notes-item-title">{a.title}</span>
                   {a.summary && <span className="notes-item-summary">{a.summary}</span>}
                   {a.tags.length > 0 && (
                     <span className="notes-item-tags">
                       {a.tags.map((t) => (
-                        <span key={t} className="notes-chip">
+                        <span key={t} className="notes-chip" onMouseDown={(e) => elec.zap(e.currentTarget)}>
                           #{t}
                         </span>
                       ))}
@@ -150,10 +242,16 @@ export default function Notes() {
         <div className="notes-contact-links">
           <ContactBar />
         </div>
-        <TransitionLink to="/" className="notes-back">
+        <TransitionLink
+          to="/"
+          className="notes-back"
+          onMouseDown={(e) => elec.zap(e.currentTarget)}
+          onClick={(e) => elec.fireSwipe(e.clientX, e.clientY)}
+        >
           ← 返回工作室
         </TransitionLink>
       </footer>
+      {elec.overlay}
     </div>
   )
 }
@@ -162,6 +260,7 @@ export default function Notes() {
 export function NoteArticle() {
   const { slug } = useParams<{ slug: string }>()
   const [article, setArticle] = useState<ArticleFull | null>(null)
+  const elec = useElectric()
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
@@ -202,10 +301,16 @@ export function NoteArticle() {
           <p className="notes-statement">这篇文章不存在，或尚未发布。</p>
         </div>
         <footer className="notes-contact">
-          <TransitionLink to="/notes" className="notes-back">
+          <TransitionLink
+            to="/notes"
+            className="notes-back"
+            onMouseDown={(e) => elec.zap(e.currentTarget)}
+            onClick={(e) => elec.fireSwipe(e.clientX, e.clientY)}
+          >
             ← 返回随笔列表
           </TransitionLink>
         </footer>
+        {elec.overlay}
       </div>
     )
   }
@@ -232,10 +337,16 @@ export function NoteArticle() {
         <div className="notes-contact-links">
           <ContactBar />
         </div>
-        <TransitionLink to="/notes" className="notes-back">
+        <TransitionLink
+          to="/notes"
+          className="notes-back"
+          onMouseDown={(e) => elec.zap(e.currentTarget)}
+          onClick={(e) => elec.fireSwipe(e.clientX, e.clientY)}
+        >
           ← 返回随笔列表
         </TransitionLink>
       </footer>
+      {elec.overlay}
     </div>
   )
 }
