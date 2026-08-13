@@ -593,18 +593,23 @@ html.cursor-hover-active-host {
 }
 .index-row:hover {
   padding-left: 24px;
-  color: var(--accent);
+  color: var(--row-accent, var(--accent));
 }
 .index-num {
   font-family: var(--font-mono);
   font-size: 13px;
   color: var(--muted);
+  transition: color 0.25s var(--ease);
 }
 .index-name {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(28px, 5vw, 52px);
   letter-spacing: -0.02em;
+}
+.index-row:hover .index-num,
+.index-row:hover .index-arrow {
+  color: var(--row-accent, var(--accent));
 }
 .index-role {
   color: var(--muted);

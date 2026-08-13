@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { TransitionLink } from '../../system/transition'
 import { HoverPreviewCard } from '../../system/HoverPreviewCard'
 import { SplitHeading } from '../../system/SplitHeading'
@@ -25,11 +26,6 @@ export default function Portal() {
         <div className="portal-display-sub">
           <span>Studio</span>
         </div>
-        <p className="portal-motto">
-          <span>耳听为律</span>
-          <span className="portal-motto-sep">·</span>
-          <span>眼见为序</span>
-        </p>
         <div className="portal-scrollcue" aria-hidden="true">
           <span>SCROLL</span>
           <i />
@@ -47,7 +43,7 @@ export default function Portal() {
           {PROJECTS.map((p, i) => {
             const t = getTheme(p.themeKey)
             return (
-              <li key={p.id}>
+              <li key={p.id} style={{ '--row-accent': t.accent } as CSSProperties}>
                 <HoverPreviewCard
                   preview={
                     <div
@@ -86,22 +82,13 @@ export default function Portal() {
       {/* ── Narrative band ───────────────────────────────────── */}
       <section className="portal-narrative">
         <Reveal as="p" className="portal-statement">
-          耳听为律，眼见为序。在这座由代码、音符与像素编织的花园里，种着音乐的碎片，养着设计的灵光。欢迎你，<em>慢慢逛</em>。
-        </Reveal>
-        <Reveal as="p" className="portal-statement-sub">
-          五个项目，一种秩序。从民航安全的信息化，到身体的舒展、声音的流动——
-          它们共享同一个底座，却各自表达不同的光。
-        </Reveal>
-        <Reveal as="div" className="portal-statement-foot">
-          <span>全局背景音乐持续播放</span>
-          <span className="portal-statement-dot" />
-          <span>切换子站不中断</span>
+          万物有律，所见成序。在这座由代码、音符与像素编织的花园里，种着音乐的碎片，养着设计的灵光。欢迎你，<em>慢慢逛</em>。
         </Reveal>
       </section>
 
       {/* ── Footer ───────────────────────────────────────────── */}
       <footer className="portal-footer">
-        <div className="portal-footer-motto">耳听为律，眼见为序</div>
+        <div className="portal-footer-motto">万物有律，所见成序</div>
         <div className="portal-footer-meta">
           <ContactBar />
         </div>
