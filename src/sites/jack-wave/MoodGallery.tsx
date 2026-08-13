@@ -176,7 +176,7 @@ function MoodCard({
   allTracks: Track[]
   onToggle: (track: Track, list: Track[]) => void
 }) {
-  const cover = pl.songList[0]?.appleArtworkUrl || null
+  const cover = pl.cover || pl.songList[0]?.appleArtworkUrl || null
   const [flipped, setFlipped] = useState(false)
 
   // 卡片被转走时自动翻回正面
@@ -220,7 +220,7 @@ function MoodCard({
 
           <div className="mood-card-author">
             <span className="mood-card-avatar" aria-hidden="true">JT</span>
-            <span className="mood-card-author-name">Jack Tan</span>
+            <span className="mood-card-author-name">{pl.author || 'Jack Tan'}</span>
             <span className="mood-card-author-role">编选</span>
           </div>
 

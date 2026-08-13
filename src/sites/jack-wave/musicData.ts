@@ -27,6 +27,10 @@ export interface MoodPlaylist {
   mood: string
   date: string
   note: string
+  /** 歌单作者（后台可编辑，默认 Jack Tan） */
+  author?: string
+  /** 封面图 URL（后台可编辑，缺省回退首曲目封面） */
+  cover?: string
   songList: Track[]
 }
 
@@ -70,6 +74,8 @@ function normalizePlaylist(raw: any, i: number): MoodPlaylist {
     mood: raw?.mood ?? '',
     date: raw?.date ?? '',
     note: raw?.note ?? '',
+    author: raw?.author ?? '',
+    cover: raw?.cover ?? '',
     songList: Array.isArray(raw?.songList)
       ? raw.songList.map((s: any, j: number) => ({
           id: s?.id ?? `${id}-${j + 1}`,

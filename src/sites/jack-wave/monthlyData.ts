@@ -18,6 +18,10 @@ export interface MonthlyShare {
   monthEn: string
   titleCn: string
   titleEn: string
+  /** 作者（后台可编辑） */
+  author?: string
+  /** 封面图 URL（后台可编辑，缺省回退首曲目封面） */
+  cover?: string
   tracks: MonthlyTrack[]
 }
 
@@ -32,6 +36,8 @@ function normalizeMonthlyShare(raw: any, i: number): MonthlyShare {
     monthEn: raw?.monthEn || '',
     titleCn: raw?.titleCn || '',
     titleEn: raw?.titleEn || '',
+    author: raw?.author || '',
+    cover: raw?.cover || '',
     tracks: Array.isArray(raw?.tracks)
       ? raw.tracks.map((t: any, j: number) => ({
           id: t?.id || `m${monthNo}-${j + 1}`,

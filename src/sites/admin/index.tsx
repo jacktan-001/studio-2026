@@ -182,52 +182,84 @@ export default function Admin() {
   )
 }
 
-// ── 歌单管理 ──────────────────────────────────────────────
-interface MoodSong {
+// ── 歌单管理（纯内容管理，无代码/JSON 编辑）──────────────────
+interface MoodSongRow {
   id: string
   title: string
   artist?: string
   duration?: string
-  appleArtworkUrl?: string
+  src?: string
   appleMusicUrl?: string
+  applePreviewUrl?: string
+  appleArtworkUrl?: string
 }
-interface MoodPlaylist {
+interface MoodPlaylistRow {
   id: string
   title: string
   mood?: string
   date?: string
   note?: string
-  songList?: MoodSong[]
+  author?: string
+  cover?: string
+  songList: MoodSongRow[]
 }
-interface MonthlyTrack {
+interface MonthlyTrackRow {
   id: string
   title: string
   artist?: string
   appleMusicUrl?: string
+  appleTrackId?: string | null
 }
-interface MonthlyShare {
+interface MonthlyShareRow {
   id: string
-  monthNo?: number
+  monthNo: number
   monthCn?: string
   monthEn?: string
   titleCn?: string
   titleEn?: string
-  tracks?: MonthlyTrack[]
+  author?: string
+  cover?: string
+  tracks: MonthlyTrackRow[]
 }
 interface PlaylistData {
-  moodPlaylists?: MoodPlaylist[]
-  monthlyShares?: MonthlyShare[]
-  allTags?: string[]
+  moodPlaylists: MoodPlaylistRow[]
+  monthlyShares: MonthlyShareRow[]
+  allTags: string[]
+}
+
+/** 小型受控文本输入 */
+function TField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  wide,
+}: {
+  label: string
+  value?: string
+  onChange: (v: string) => void
+  placeholder?: string
+  wide?: boolean
+}) {
+  return (
+    <label className={`pl-field ${wide ? 'pl-field--wide' : ''}`}>
+      <span className="pl-field-label">{label}</span>
+      <input
+        className="admin-input"
+        value={value || ''}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  )
 }
 
 function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => void }) {
-  const [draft, setDraft] = useState('')
+  const [data, setData] = useState<PlaylistData>({ moodPlaylists: [], monthlyShares: [], allTags: [] })
   const [meta, setMeta] = useState<{ source?: string; updatedAt?: string }>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [valid, setValid] = useState<boolean | null>(null)
-  const [view, setView] = useState<'grid' | 'json'>('grid')
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [dirty, setDirty] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -235,14 +267,17 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
       const res = await api('/api/data')
       const json = await res.json()
       if (json.data) {
-        setDraft(JSON.stringify(json.data, null, 2))
-        setMeta({ source: json.source, updatedAt: json.updatedAt || json.data.updatedAt })
-        setValid(true)
+        setData({
+          moodPlaylists: json.data.moodPlaylists || [],
+          monthlyShares: json.data.monthlyShares || [],
+          allTags: json.data.allTags || [],
+        })
+        setMeta({ source: json.source, updatedAt: json.updatedAt })
       } else {
-        setDraft(JSON.stringify({ moodPlaylists: [], monthlyShares: [], allTags: [] }, null, 2))
+        setData({ moodPlaylists: [], monthlyShares: [], allTags: [] })
         setMeta({ source: 'empty' })
-        setValid(true)
       }
+      setDirty(false)
     } catch (e) {
       if ((e as Error).message === 'AUTH') return
       onToast('err', '加载失败')
@@ -255,43 +290,26 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
     load()
   }, [load])
 
-  const parsed = useMemo<PlaylistData | null>(() => {
-    try {
-      return JSON.parse(draft) as PlaylistData
-    } catch {
-      return null
-    }
-  }, [draft])
-
-  const onDraftChange = (v: string) => {
-    setDraft(v)
-    try {
-      const o = JSON.parse(v)
-      const ok = Array.isArray(o.moodPlaylists) && Array.isArray(o.monthlyShares) && Array.isArray(o.allTags)
-      setValid(ok)
-    } catch {
-      setValid(false)
-    }
+  /** 在可变副本上执行修改 */
+  const upd = (fn: (d: PlaylistData) => void) => {
+    setData((prev) => {
+      const d = structuredClone(prev) as PlaylistData
+      fn(d)
+      return d
+    })
+    setDirty(true)
   }
 
   const save = async () => {
-    let parsedJson: unknown
-    try {
-      parsedJson = JSON.parse(draft)
-    } catch {
-      onToast('err', 'JSON 格式错误，无法保存')
-      return
-    }
     setSaving(true)
     try {
-      const res = await api('/api/data', { method: 'PUT', body: JSON.stringify(parsedJson) })
+      const res = await api('/api/data', { method: 'PUT', body: JSON.stringify(data) })
       const json = await res.json()
       if (res.ok) {
         onToast('ok', '已保存到 KV')
         setMeta({ source: 'kv', updatedAt: new Date().toISOString() })
-      } else {
-        onToast('err', json.error || '保存失败')
-      }
+        setDirty(false)
+      } else onToast('err', json.error || '保存失败')
     } catch (e) {
       if ((e as Error).message === 'AUTH') return
       onToast('err', '保存失败')
@@ -300,217 +318,204 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
     }
   }
 
-  const clear = async () => {
-    if (!confirm('确认清空线上歌单数据？前端将回退到静态种子。')) return
-    try {
-      const res = await api('/api/data', { method: 'DELETE' })
-      if (res.ok) {
-        onToast('ok', '已清空，回退静态种子')
-        load()
-      } else onToast('err', '清空失败')
-    } catch (e) {
-      if ((e as Error).message === 'AUTH') return
-      onToast('err', '清空失败')
-    }
-  }
-
   const loadSeed = () => {
-    setDraft(
-      JSON.stringify(
-        { moodPlaylists: MOOD_PLAYLISTS, monthlyShares: MONTHLY_SHARES, allTags: [] },
-        null,
-        2,
-      ),
+    setData(
+      structuredClone({
+        moodPlaylists: MOOD_PLAYLISTS,
+        monthlyShares: MONTHLY_SHARES,
+        allTags: [],
+      }) as PlaylistData,
     )
-    setValid(true)
-    onToast('ok', '已载入站点静态种子，可编辑后保存')
+    setDirty(true)
+    onToast('ok', '已载入静态种子，编辑后点保存')
   }
 
-  const exportJson = () => {
-    const blob = new Blob([draft], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'jack-wave-playlists.json'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const importFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      setDraft(String(reader.result))
-      onDraftChange(String(reader.result))
-    }
-    reader.readAsText(f)
-    e.target.value = ''
-  }
-
-  const mood = parsed?.moodPlaylists || []
-  const monthly = parsed?.monthlyShares || []
+  const addMood = () =>
+    upd((d) => {
+      const next = String(d.moodPlaylists.length + 1).padStart(2, '0')
+      d.moodPlaylists.push({ id: next, title: '新歌单', mood: '', date: '', note: '', author: '', cover: '', songList: [] })
+    })
+  const addMonthly = () =>
+    upd((d) => {
+      const n = d.monthlyShares.length + 1
+      d.monthlyShares.push({ id: `m${String(n).padStart(2, '0')}`, monthNo: n, monthCn: `${n}月`, monthEn: '', titleCn: '', titleEn: '', author: '', cover: '', tracks: [] })
+    })
 
   return (
     <section className="admin-panel">
       <div className="admin-panel-head">
         <div>
-          <h2 className="admin-h2">歌单数据</h2>
+          <h2 className="admin-h2">歌单内容管理</h2>
           <p className="admin-meta">
             来源：
             <span className="admin-tag">
-              {meta.source === 'kv' ? '线上 KV' : meta.source === 'seed' ? '静态种子' : meta.source === 'empty' ? '空' : '—'}
+              {meta.source === 'kv' ? '线上 KV' : meta.source === 'empty' ? '空' : '—'}
             </span>
-            {' · 心情刊 '}
-            <span className="admin-tag">{mood.length}</span>
-            {' · 月度 '}
-            <span className="admin-tag">{monthly.length}</span>
+            {' · 心情刊 '}<span className="admin-tag">{data.moodPlaylists.length}</span>
+            {' · 月度 '}<span className="admin-tag">{data.monthlyShares.length}</span>
+            {dirty && <span className="admin-tag" style={{ marginLeft: 6 }}>未保存</span>}
             {meta.updatedAt && <> · 更新于 {new Date(meta.updatedAt).toLocaleString('zh-CN')}</>}
           </p>
         </div>
         <div className="admin-actions">
-          <button
-            className={`admin-btn ${view === 'grid' ? 'admin-btn--primary' : 'admin-btn--ghost'}`}
-            onClick={() => setView('grid')}
-          >
-            结构预览
-          </button>
-          <button
-            className={`admin-btn ${view === 'json' ? 'admin-btn--primary' : 'admin-btn--ghost'}`}
-            onClick={() => setView('json')}
-          >
-            JSON 编辑
+          <button className="admin-btn admin-btn--primary" onClick={save} disabled={saving || !dirty}>
+            {saving ? '保存中…' : '保存'}
           </button>
           <button className="admin-btn admin-btn--ghost" onClick={loadSeed}>
             载入种子
           </button>
-          <button className="admin-btn admin-btn--ghost" onClick={() => fileRef.current?.click()}>
-            导入
+          <button className="admin-btn admin-btn--ghost" onClick={addMood}>
+            ＋ 心情刊
           </button>
-          <button className="admin-btn admin-btn--ghost" onClick={exportJson}>
-            导出
+          <button className="admin-btn admin-btn--ghost" onClick={addMonthly}>
+            ＋ 月度
           </button>
-          <button className="admin-btn admin-btn--danger" onClick={clear}>
-            清空
-          </button>
-          <input ref={fileRef} type="file" accept="application/json" hidden onChange={importFile} />
         </div>
       </div>
 
       {loading ? (
         <div className="admin-loading">读取中…</div>
-      ) : view === 'json' ? (
-        <>
-          <textarea
-            className="admin-textarea"
-            spellCheck={false}
-            value={draft}
-            onChange={(e) => onDraftChange(e.target.value)}
-          />
-          <div className="admin-panel-foot">
-            <span className={`admin-valid ${valid === false ? 'is-bad' : valid ? 'is-good' : ''}`}>
-              {valid === false ? 'JSON 无效' : valid ? 'JSON 有效' : ''}
-            </span>
-            <button className="admin-btn admin-btn--primary" onClick={save} disabled={saving || valid === false}>
-              {saving ? '保存中…' : '保存到 KV'}
-            </button>
-          </div>
-        </>
-      ) : parsed ? (
-        <div className="pl-wrap">
-          {/* 心情歌单 */}
+      ) : (
+        <div className="pl-edit-wrap">
+          {/* ── 心情歌单 ── */}
           <div className="pl-group-head">
             <h3 className="pl-h3">心情歌单</h3>
-            <span className="pl-group-count">{mood.length} 期</span>
+            <span className="pl-group-count">{data.moodPlaylists.length} 期</span>
           </div>
-          {mood.length === 0 ? (
-            <div className="admin-empty">暂无心情歌单</div>
-          ) : (
-            <div className="pl-cards">
-              {mood.map((pl) => (
-                <div className="pl-card" key={pl.id}>
-                  <div className="pl-card-head">
-                    <span className="pl-card-id">{pl.id}</span>
-                    <span className="pl-card-title">{pl.title}</span>
-                    {pl.mood && <span className="pl-card-mood">{pl.mood}</span>}
+          {data.moodPlaylists.map((pl, i) => (
+            <div className="pl-edit-card" key={pl.id || i}>
+              <div className="pl-edit-card-head">
+                <span className="pl-card-id">心情刊 {pl.id}</span>
+                <button
+                  className="admin-btn admin-btn--danger"
+                  onClick={() => {
+                    if (confirm(`删除歌单「${pl.title}」？`)) upd((d) => d.moodPlaylists.splice(i, 1))
+                  }}
+                >
+                  删除歌单
+                </button>
+              </div>
+
+              <div className="pl-edit-grid">
+                <TField label="名称" value={pl.title} onChange={(v) => upd((d) => (d.moodPlaylists[i].title = v))} />
+                <TField label="作者" value={pl.author} placeholder="Jack Tan" onChange={(v) => upd((d) => (d.moodPlaylists[i].author = v))} />
+                <TField label="心情" value={pl.mood} onChange={(v) => upd((d) => (d.moodPlaylists[i].mood = v))} />
+                <TField label="日期" value={pl.date} placeholder="2026.01" onChange={(v) => upd((d) => (d.moodPlaylists[i].date = v))} />
+                <TField label="封面 URL" value={pl.cover} placeholder="留空用首曲目封面" onChange={(v) => upd((d) => (d.moodPlaylists[i].cover = v))} wide />
+              </div>
+              <TField label="手记" value={pl.note} onChange={(v) => upd((d) => (d.moodPlaylists[i].note = v))} wide />
+
+              <div className="pl-edit-songs-head">
+                <span className="pl-group-count">歌曲 {pl.songList.length}</span>
+                <button
+                  className="admin-btn admin-btn--ghost"
+                  onClick={() =>
+                    upd((d) =>
+                      d.moodPlaylists[i].songList.push({
+                        id: `${pl.id}-${d.moodPlaylists[i].songList.length + 1}`,
+                        title: '',
+                        artist: '',
+                        duration: '',
+                        src: '/audio/ambient.wav',
+                        appleMusicUrl: '',
+                        applePreviewUrl: '',
+                        appleArtworkUrl: '',
+                      }),
+                    )
+                  }
+                >
+                  ＋ 歌曲
+                </button>
+              </div>
+              {pl.songList.map((s, j) => (
+                <div className="pl-edit-song" key={s.id || j}>
+                  <div className="pl-edit-grid">
+                    <TField label="歌名" value={s.title} onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].title = v))} />
+                    <TField label="艺人" value={s.artist} onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].artist = v))} />
+                    <TField label="时长" value={s.duration} placeholder="3:30" onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].duration = v))} />
                   </div>
-                  <div className="pl-card-sub">
-                    {pl.date && <span>{pl.date}</span>}
-                    <span>{(pl.songList || []).length} 首</span>
+                  <div className="pl-edit-grid">
+                    <TField label="Apple 链接" value={s.appleMusicUrl} onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].appleMusicUrl = v))} wide />
+                    <TField label="试听 URL" value={s.applePreviewUrl} onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].applePreviewUrl = v))} wide />
+                    <TField label="封面 URL" value={s.appleArtworkUrl} onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].appleArtworkUrl = v))} wide />
+                    <button
+                      className="admin-btn admin-btn--danger"
+                      onClick={() => upd((d) => d.moodPlaylists[i].songList.splice(j, 1))}
+                    >
+                      删
+                    </button>
                   </div>
-                  {pl.note && <p className="pl-card-note">{pl.note}</p>}
-                  <ul className="pl-tracks">
-                    {(pl.songList || []).map((s) => (
-                      <li key={s.id} className="pl-track">
-                        {s.appleArtworkUrl ? (
-                          <img className="pl-track-art" src={s.appleArtworkUrl} alt="" loading="lazy" />
-                        ) : (
-                          <span className="pl-track-art pl-track-art--ph" aria-hidden="true">
-                            ♪
-                          </span>
-                        )}
-                        <span className="pl-track-title">{s.title}</span>
-                        <span className="pl-track-artist">{s.artist || '—'}</span>
-                        <span className="pl-track-dur">{s.duration || ''}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               ))}
             </div>
-          )}
+          ))}
 
-          {/* 月度精选 */}
+          {/* ── 月度精选 ── */}
           <div className="pl-group-head" style={{ marginTop: 32 }}>
             <h3 className="pl-h3">月度精选</h3>
-            <span className="pl-group-count">{monthly.length} 期</span>
+            <span className="pl-group-count">{data.monthlyShares.length} 期</span>
           </div>
-          {monthly.length === 0 ? (
-            <div className="admin-empty">暂无月度精选</div>
-          ) : (
-            <div className="pl-cards">
-              {monthly.map((m) => (
-                <div className="pl-card" key={m.id}>
-                  <div className="pl-card-head">
-                    <span className="pl-card-id">{m.monthCn || m.id}</span>
-                    <span className="pl-card-title">{m.titleCn || m.id}</span>
-                    {m.titleEn && <span className="pl-card-mood">{m.titleEn}</span>}
+          {data.monthlyShares.map((m, i) => (
+            <div className="pl-edit-card" key={m.id || i}>
+              <div className="pl-edit-card-head">
+                <span className="pl-card-id">{m.monthCn || m.id}</span>
+                <button
+                  className="admin-btn admin-btn--danger"
+                  onClick={() => {
+                    if (confirm(`删除月度「${m.titleCn || m.monthCn}」？`)) upd((d) => d.monthlyShares.splice(i, 1))
+                  }}
+                >
+                  删除月度
+                </button>
+              </div>
+
+              <div className="pl-edit-grid">
+                <TField label="中文标题" value={m.titleCn} onChange={(v) => upd((d) => (d.monthlyShares[i].titleCn = v))} />
+                <TField label="英文标题" value={m.titleEn} onChange={(v) => upd((d) => (d.monthlyShares[i].titleEn = v))} />
+                <TField label="月份" value={m.monthCn} onChange={(v) => upd((d) => (d.monthlyShares[i].monthCn = v))} />
+                <TField label="作者" value={m.author} placeholder="Jack Tan" onChange={(v) => upd((d) => (d.monthlyShares[i].author = v))} />
+                <TField label="封面 URL" value={m.cover} placeholder="留空用首曲目封面" onChange={(v) => upd((d) => (d.monthlyShares[i].cover = v))} wide />
+              </div>
+
+              <div className="pl-edit-songs-head">
+                <span className="pl-group-count">歌曲 {m.tracks.length}</span>
+                <button
+                  className="admin-btn admin-btn--ghost"
+                  onClick={() =>
+                    upd((d) =>
+                      d.monthlyShares[i].tracks.push({
+                        id: `${m.id}-${d.monthlyShares[i].tracks.length + 1}`,
+                        title: '',
+                        artist: '',
+                        appleMusicUrl: '',
+                        appleTrackId: null,
+                      }),
+                    )
+                  }
+                >
+                  ＋ 歌曲
+                </button>
+              </div>
+              {m.tracks.map((t, j) => (
+                <div className="pl-edit-song" key={t.id || j}>
+                  <div className="pl-edit-grid">
+                    <TField label="歌名" value={t.title} onChange={(v) => upd((d) => (d.monthlyShares[i].tracks[j].title = v))} />
+                    <TField label="艺人" value={t.artist} onChange={(v) => upd((d) => (d.monthlyShares[i].tracks[j].artist = v))} />
+                    <TField label="Apple 链接" value={t.appleMusicUrl} onChange={(v) => upd((d) => (d.monthlyShares[i].tracks[j].appleMusicUrl = v))} wide />
+                    <button
+                      className="admin-btn admin-btn--danger"
+                      onClick={() => upd((d) => d.monthlyShares[i].tracks.splice(j, 1))}
+                    >
+                      删
+                    </button>
                   </div>
-                  <div className="pl-card-sub">
-                    <span>{(m.tracks || []).length} 首</span>
-                  </div>
-                  <ul className="pl-tracks">
-                    {(m.tracks || []).map((t) => (
-                      <li key={t.id} className="pl-track">
-                        <span className="pl-track-art pl-track-art--ph" aria-hidden="true">
-                          ♪
-                        </span>
-                        <span className="pl-track-title">{t.title}</span>
-                        <span className="pl-track-artist">{t.artist || '—'}</span>
-                        {t.appleMusicUrl && (
-                          <a
-                            className="pl-track-link"
-                            href={t.appleMusicUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            ↗
-                          </a>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               ))}
             </div>
-          )}
+          ))}
 
-          <p className="pl-hint">
-            结构预览为只读。要增删歌曲或改文案，请切到「JSON 编辑」修改后保存。
-          </p>
+          <p className="pl-hint">所有修改需点右上「保存」才会写入线上 KV；前端 ≤60s 内可见。</p>
         </div>
-      ) : (
-        <div className="admin-empty">当前数据不是有效 JSON，请切到「JSON 编辑」修复。</div>
       )}
     </section>
   )

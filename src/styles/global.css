@@ -5732,3 +5732,27 @@ html.cursor-hover-active-host {
 .pl-track-link { color: var(--accent-2); text-decoration: none; font-size: 13px; }
 .pl-track-link:hover { text-decoration: underline; }
 .pl-hint { margin: 18px 0 0; font-size: 12.5px; color: var(--muted); }
+
+/* ── 管理后台 · 歌单结构化编辑器 ─────────────────────────── */
+.pl-edit-wrap { display: block; }
+.pl-edit-card {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); padding: 16px; margin-bottom: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.pl-edit-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pl-edit-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 12px; align-items: end;
+}
+.pl-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pl-field--wide { grid-column: 1 / -1; }
+.pl-field-label { font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
+.pl-field .admin-input { width: 100%; }
+.pl-edit-songs-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.pl-edit-song {
+  border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;
+  padding: 10px; display: flex; flex-direction: column; gap: 8px;
+  background: rgba(255,255,255,0.02);
+}
+.pl-edit-song .pl-edit-grid { align-items: end; }

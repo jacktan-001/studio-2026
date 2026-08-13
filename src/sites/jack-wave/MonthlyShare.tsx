@@ -78,7 +78,7 @@ export function MonthlyShare() {
     setMonthNo((n) => Math.min(TOTAL, Math.max(1, n + dir)))
   const first = validTracks[0] ?? month.tracks[0]
   const playlistSeed = first ? `${first.id}${first.title}` : month.id
-  const firstArt = first?.appleTrackId ? metaMap[first.appleTrackId]?.artworkUrl : null
+  const firstArt = month.cover || (first?.appleTrackId ? metaMap[first.appleTrackId]?.artworkUrl : null)
 
   return (
     <section className="wave-section">
@@ -141,6 +141,9 @@ export function MonthlyShare() {
                   {month.monthCn} · {month.titleCn}
                 </h3>
                 <span className="wave-monthly-sub">{month.titleEn}</span>
+                {month.author && (
+                  <span className="wave-monthly-sub">编选 · {month.author}</span>
+                )}
                 <span className="wave-monthly-count">{validTracks.length} TRACKS</span>
               </div>
             </div>
