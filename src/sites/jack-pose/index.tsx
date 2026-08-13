@@ -4,6 +4,7 @@ import { PinnedChapter } from '../../system/PinnedChapter'
 import { TransitionLink } from '../../system/transition'
 import { ContactBar } from '../../system/ContactBar'
 import { SiteAvatar } from '../../system/avatars'
+import { SiteBadge } from '../../system/SiteBadge'
 
 const STATS = [
   { num: '30+', label: '排版模板' },
@@ -71,7 +72,7 @@ export default function JackPose() {
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="pose-hero">
         <SiteAvatar siteId="jack-pose" className="site-avatar-hero" />
-        <span className="pose-eyebrow">LAYOUT STUDIO · 社媒长图排版</span>
+        <SiteBadge className="pose-badge">LAYOUT STUDIO · 社媒长图排版</SiteBadge>
         <SplitHeading as="h1" className="pose-name" text="Jack Pose" splitBy="chars" />
         <p className="pose-statement">
           把想法，<strong>排成一张图</strong>。一个面向社媒的长图排版与导出工具——

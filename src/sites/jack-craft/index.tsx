@@ -5,6 +5,7 @@ import { PinnedChapter } from '../../system/PinnedChapter'
 import { TransitionLink } from '../../system/transition'
 import { ContactBar } from '../../system/ContactBar'
 import { SiteAvatar } from '../../system/avatars'
+import { SiteBadge } from '../../system/SiteBadge'
 import { useMotionPrefs } from '../../core/MotionPrefsProvider'
 
 const STATS = [
@@ -295,7 +296,7 @@ export default function JackCraft() {
         <div className="craft-hero-veil" aria-hidden="true" />
         <div className="craft-hero-inner">
           <SiteAvatar siteId="jack-craft" className="site-avatar-hero" />
-          <span className="craft-eyebrow">GENERATIVE ART · 生成艺术</span>
+          <SiteBadge className="craft-badge">GENERATIVE ART · 生成艺术</SiteBadge>
           <SplitHeading as="h1" className="craft-name" text="Jack Craft" splitBy="chars" />
           <p className="craft-statement">
             给机器<strong>一条规则</strong>，让它替我长出一片

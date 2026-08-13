@@ -115,6 +115,7 @@ a {
 [data-site='jack-pose'] .ambient-canvas { opacity: 1; }
 [data-site='jack-wave'] .ambient-canvas { opacity: 0.95; }
 [data-site='jack-talk'] .ambient-canvas { opacity: 0.95; }
+[data-site='notes'] .ambient-canvas { opacity: 0.85; }
 
 
 /* ── Site-wide contact icon bar ────────────────────────────
@@ -859,13 +860,7 @@ html.cursor-hover-active-host {
   justify-content: center;
   padding: 60px 0;
 }
-.tan-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.26em;
-  color: var(--muted);
-  margin-bottom: 16px;
-}
+/* Hero tag is rendered with the shared <SiteBadge> component. */
 .tan-name {
   font-family: var(--font-display);
   font-weight: 800;
@@ -1255,15 +1250,8 @@ html.cursor-hover-active-host {
   padding: 60px 0;
   overflow: hidden;
 }
-/* Color blob removed — clean dark glass hero */
-.pose-eyebrow {
-  position: relative;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.26em;
-  color: var(--muted);
-  margin-bottom: 16px;
-}
+/* Color blob removed — clean dark glass hero;
+   hero tag is rendered with the shared <SiteBadge> component. */
 .pose-name {
   position: relative;
   font-family: var(--font-display);
@@ -1636,13 +1624,7 @@ html.cursor-hover-active-host {
   justify-content: center;
   padding: 60px 0;
 }
-.wave-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.26em;
-  color: var(--muted);
-  margin-bottom: 16px;
-}
+/* Hero tag is rendered with the shared <SiteBadge> component. */
 .wave-name {
   font-family: var(--font-display);
   font-weight: 800;
@@ -2809,42 +2791,8 @@ html.cursor-hover-active-host {
   padding: 60px 0;
   overflow: hidden;
 }
-/* Color blob removed — clean dark glass hero */
-.talk-badge {
-  position: relative;
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  color: var(--accent);
-  border: 1px solid rgba(var(--accent-rgb), 0.4);
-  border-radius: 999px;
-  padding: 6px 14px;
-  margin-bottom: 22px;
-}
-.talk-badge-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 10px var(--accent);
-  animation: talk-pulse 1.6s ease-in-out infinite;
-}
-@keyframes talk-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.7); }
-}
-.talk-eyebrow {
-  position: relative;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.26em;
-  color: var(--muted);
-  margin-bottom: 16px;
-}
+/* Color blob removed — clean dark glass hero;
+   hero tag is rendered with the shared <SiteBadge> component. */
 .talk-name {
   position: relative;
   font-family: var(--font-display);
@@ -3262,35 +3210,23 @@ html.cursor-hover-active-host {
   bottom: 0;
   left: -10%;
   width: 120%;
-  height: 35%;
+  height: 26%;
   background:
-    linear-gradient(180deg, transparent, rgba(16, 185, 129, 0.04)),
+    linear-gradient(180deg, transparent, rgba(16, 185, 129, 0.03)),
     repeating-linear-gradient(
       90deg,
-      rgba(16, 185, 129, 0.06) 0px,
-      rgba(16, 185, 129, 0.06) 1px,
+      rgba(16, 185, 129, 0.025) 0px,
+      rgba(16, 185, 129, 0.025) 1px,
       transparent 1px,
-      transparent 60px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      rgba(16, 185, 129, 0.04) 0px,
-      rgba(16, 185, 129, 0.04) 1px,
-      transparent 1px,
-      transparent 60px
+      transparent 72px
     );
   transform: perspective(600px) rotateX(55deg);
   transform-origin: bottom;
   pointer-events: none;
-  mask-image: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
-  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+  mask-image: linear-gradient(to top, rgba(0,0,0,0.28), transparent 78%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.28), transparent 78%);
 }
-.craft-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.26em;
-  color: var(--muted);
-}
+/* Hero tag is rendered with the shared <SiteBadge> component. */
 .craft-name {
   font-family: var(--font-display);
   font-weight: 800;
@@ -5356,6 +5292,45 @@ html.cursor-hover-active-host {
 }
 
 /* ============================================================
+   统一站点徽章（hero 顶部特征色标签）
+   子站 hero 中通过 <SiteBadge className="X-badge">...</SiteBadge>
+   ============================================================ */
+.site-badge {
+  position: relative;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: rgba(var(--accent-rgb), 0.08);
+  box-shadow:
+    0 0 20px rgba(var(--accent-rgb), 0.12),
+    inset 0 0 12px rgba(var(--accent-rgb), 0.06);
+  backdrop-filter: blur(4px);
+  margin-bottom: 22px;
+}
+.site-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+.site-badge-dot.is-pulse {
+  animation: site-badge-pulse 1.6s ease-in-out infinite;
+}
+@keyframes site-badge-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* ============================================================
    统一站点头像（页面展示 / PWA 图标 / 微信分享 三处一致）
    子站 hero 中通过 <SiteAvatar siteId=... className="site-avatar-hero" />
    ============================================================ */
@@ -5427,39 +5402,14 @@ html.cursor-hover-active-host {
   padding: 60px 0;
   overflow: hidden;
 }
-.notes-badge {
-  position: relative;
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  color: var(--accent);
-  border: 1px solid rgba(var(--accent-rgb), 0.4);
-  border-radius: 999px;
-  padding: 6px 14px;
-  margin-bottom: 22px;
-}
-.notes-badge-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 10px var(--accent);
-  animation: notes-pulse 1.6s ease-in-out infinite;
-}
-@keyframes notes-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.7); }
-}
+/* Hero tag is rendered with the shared <SiteBadge> component.
+   .notes-eyebrow remains for article-detail metadata lines. */
 .notes-eyebrow {
   position: relative;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.26em;
-  color: var(--muted);
+  color: var(--accent-2);
   margin-bottom: 16px;
 }
 .notes-name {
@@ -5664,6 +5614,61 @@ html.cursor-hover-active-host {
 }
 .notes-back:hover {
   color: var(--accent);
+}
+
+/* ── Notes · 金色电流感增强 ────────────────────────────────
+   与全局 goldenDrift 动效呼应：hero 边缘有淡金辉光，列表 hover 时
+   产生金色发光边框，标题带轻微暖色光晕。 */
+.notes-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 20% 30%, rgba(var(--accent-rgb), 0.12), transparent 55%),
+    radial-gradient(100% 70% at 90% 80%, rgba(var(--accent2-rgb), 0.08), transparent 50%);
+}
+.notes-name {
+  text-shadow: 0 0 60px rgba(var(--accent-rgb), 0.22);
+}
+.notes-section {
+  position: relative;
+}
+.notes-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.45), transparent);
+  opacity: 0.6;
+}
+.notes-item {
+  position: relative;
+}
+.notes-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.35), 0 0 28px rgba(var(--accent-rgb), 0.1);
+  transition: opacity 0.35s var(--ease);
+}
+.notes-item:hover::before {
+  opacity: 1;
+}
+.notes-item:hover .notes-item-date {
+  text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.45);
+}
+.notes-chip {
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.notes-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.25);
 }
 
 /* ── 文章详情 ────────────────────────────────────────────── */

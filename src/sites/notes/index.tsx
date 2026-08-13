@@ -18,6 +18,7 @@ import { Reveal } from '../../system/Reveal'
 import { TransitionLink } from '../../system/transition'
 import { ContactBar } from '../../system/ContactBar'
 import { SiteAvatar } from '../../system/avatars'
+import { SiteBadge } from '../../system/SiteBadge'
 
 interface ArticleSummary {
   slug: string
@@ -83,10 +84,7 @@ export default function Notes() {
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="notes-hero">
         <SiteAvatar siteId="notes" className="site-avatar-hero" />
-        <span className="notes-badge">
-          <i className="notes-badge-dot" /> JOURNAL · 持续书写
-        </span>
-        <span className="notes-eyebrow">NOTES · 随笔</span>
+        <SiteBadge className="notes-badge">NOTES · 随笔</SiteBadge>
         <SplitHeading as="h1" className="notes-name" text="随笔" splitBy="chars" />
         <p className="notes-statement">
           安全监管与创意宇宙的<strong>两条线</strong>——偶尔交叉，

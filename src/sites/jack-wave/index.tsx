@@ -4,6 +4,7 @@ import { PinnedChapter } from '../../system/PinnedChapter'
 import { TransitionLink } from '../../system/transition'
 import { ContactBar } from '../../system/ContactBar'
 import { SiteAvatar } from '../../system/avatars'
+import { SiteBadge } from '../../system/SiteBadge'
 import { MoodGallery } from './MoodGallery'
 import { MonthlyShare } from './MonthlyShare'
 import { SubmitForm } from './SubmitForm'
@@ -24,7 +25,7 @@ export default function JackWave() {
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="wave-hero">
         <SiteAvatar siteId="jack-wave" className="site-avatar-hero" />
-        <span className="wave-eyebrow">MUSIC JOURNAL · 音乐与心情期刊</span>
+        <SiteBadge className="wave-badge">MUSIC JOURNAL · 音乐与心情期刊</SiteBadge>
         <SplitHeading as="h1" className="wave-name" text="Jack Wave" splitBy="chars" />
         <p className="wave-statement">
           声音是情绪的<strong>记事本</strong>。Jack Wave 是一本音乐期刊——

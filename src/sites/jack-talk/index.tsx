@@ -5,6 +5,7 @@ import { PinnedChapter } from '../../system/PinnedChapter'
 import { TransitionLink } from '../../system/transition'
 import { ContactBar } from '../../system/ContactBar'
 import { SiteAvatar } from '../../system/avatars'
+import { SiteBadge } from '../../system/SiteBadge'
 
 const STATS = [
   { num: '48', label: '已发布节目' },
@@ -77,10 +78,7 @@ export default function JackTalk() {
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="talk-hero">
         <SiteAvatar siteId="jack-talk" className="site-avatar-hero" />
-        <span className="talk-badge">
-          <i className="talk-badge-dot" /> ON AIR · 每周更新
-        </span>
-        <span className="talk-eyebrow">PODCAST · 行业对谈</span>
+        <SiteBadge className="talk-badge">PODCAST · 对谈</SiteBadge>
         <SplitHeading as="h1" className="talk-name" text="Jack Talk" splitBy="chars" />
         <p className="talk-statement">
           和<strong>真正在做的人</strong>聊——把行业里那些没说出口的事，

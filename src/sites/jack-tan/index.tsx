@@ -1,5 +1,6 @@
 import { SplitHeading } from '../../system/SplitHeading'
 import { SiteAvatar } from '../../system/avatars'
+import { SiteBadge } from '../../system/SiteBadge'
 import { Reveal } from '../../system/Reveal'
 import { PinnedChapter } from '../../system/PinnedChapter'
 import { SpatialGallery, type SpatialItem } from '../../system/SpatialGallery'
@@ -64,7 +65,7 @@ export default function JackTan() {
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="tan-hero">
         <SiteAvatar siteId="jack-tan" className="site-avatar-hero" />
-        <span className="tan-eyebrow">PERSONAL PORTFOLIO · BEIJING</span>
+        <SiteBadge className="tan-badge">PERSONAL PORTFOLIO · BEIJING</SiteBadge>
         <SplitHeading as="h1" className="tan-name" text="Jack Tan" splitBy="chars" />
         <p className="tan-statement">
           民航安全信息化工程师。<strong>技术驱动者</strong>——让安全监管可被计算、可被追溯。
