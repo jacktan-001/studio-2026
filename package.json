@@ -13,9 +13,11 @@
     "gen:audio": "python3 scripts/gen-audio.py"
   },
   "dependencies": {
+    "dompurify": "^3.4.13",
     "gsap": "^3.13.0",
     "heic2any": "^0.0.4",
     "lenis": "^1.1.18",
+    "marked": "^18.0.9",
     "motion": "^11.18.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

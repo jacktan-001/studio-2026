@@ -5316,3 +5316,138 @@ html.cursor-hover-active-host {
 .admin-stats-table .admin-chip {
   margin: 0 6px 4px 0;
 }
+
+
+/* ── Notes · 随笔（内容中枢 P1）────────────────────────── */
+.notes-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 120px 24px 80px;
+  min-height: 100vh;
+}
+.notes-head { margin-bottom: 40px; }
+.notes-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  color: var(--accent-2);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.notes-title {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 5vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+  color: var(--fg);
+}
+.notes-sub { color: var(--muted); font-size: 15px; margin: 0; }
+.notes-empty {
+  color: var(--muted);
+  padding: 60px 0;
+  text-align: center;
+  font-size: 14px;
+}
+.notes-list { display: flex; flex-direction: column; gap: 14px; }
+.notes-card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
+}
+.notes-card:hover {
+  border-color: rgba(var(--accent-rgb), 0.5);
+  background: var(--surface-2);
+}
+.notes-card-date {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.notes-card-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--fg);
+}
+.notes-card-summary {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.notes-card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.notes-tag {
+  font-size: 12px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent-2);
+}
+.notes-foot { margin-top: 48px; }
+.notes-back {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.18s var(--ease);
+}
+.notes-back:hover { color: var(--fg); }
+
+/* 文章正文（Markdown） */
+.notes-body {
+  color: var(--fg);
+  font-size: 15.5px;
+  line-height: 1.9;
+}
+.notes-body h2, .notes-body h3 {
+  font-family: var(--font-display);
+  margin: 32px 0 12px;
+  letter-spacing: -0.01em;
+}
+.notes-body h2 { font-size: 22px; }
+.notes-body h3 { font-size: 18px; }
+.notes-body p { margin: 14px 0; }
+.notes-body a { color: var(--accent-2); }
+.notes-body blockquote {
+  border-left: 3px solid rgba(var(--accent-rgb), 0.6);
+  padding: 4px 0 4px 16px;
+  margin: 18px 0;
+  color: var(--muted);
+}
+.notes-body code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+.notes-body pre {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.notes-body pre code { background: none; border: none; padding: 0; }
+.notes-body ul, .notes-body ol { padding-left: 22px; margin: 14px 0; }
+.notes-body li { margin: 6px 0; }
+.notes-body img { max-width: 100%; border-radius: 10px; }
+.notes-body hr { border: none; border-top: 1px solid var(--line); margin: 28px 0; }
+.notes-body table { border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+.notes-body th, .notes-body td { border: 1px solid var(--line); padding: 8px 12px; }
+@media (max-width: 640px) {
+  .notes-page { padding-top: 96px; }
+}

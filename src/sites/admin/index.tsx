@@ -10,7 +10,7 @@ import { MONTHLY_SHARES } from '../jack-wave/monthlyData'
 
 const TOKEN_KEY = 'studio_admin_pw'
 
-type Tab = 'playlists' | 'submissions' | 'stats'
+type Tab = 'playlists' | 'submissions' | 'content' | 'audit' | 'stats'
 
 // ── 统一 API 封装：自动带鉴权头，401 视为登录失效 ──────────
 async function api(path: string, opts: RequestInit = {}): Promise<Response> {
@@ -144,6 +144,18 @@ export default function Admin() {
           投稿审核
         </button>
         <button
+          className={`admin-tab ${tab === 'content' ? 'is-active' : ''}`}
+          onClick={() => setTab('content')}
+        >
+          文章
+        </button>
+        <button
+          className={`admin-tab ${tab === 'audit' ? 'is-active' : ''}`}
+          onClick={() => setTab('audit')}
+        >
+          操作审计
+        </button>
+        <button
           className={`admin-tab ${tab === 'stats' ? 'is-active' : ''}`}
           onClick={() => setTab('stats')}
         >
@@ -156,6 +168,10 @@ export default function Admin() {
           <PlaylistsPanel onToast={flash} />
         ) : tab === 'submissions' ? (
           <SubmissionsPanel onToast={flash} />
+        ) : tab === 'content' ? (
+          <ContentPanel onToast={flash} />
+        ) : tab === 'audit' ? (
+          <AuditPanel />
         ) : (
           <StatsPanel />
         )}
@@ -339,6 +355,7 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
 // ── 投稿审核 ──────────────────────────────────────────────
 type Submission = {
   id: string
+  siteId?: string
   type: string
   linkUrl?: string
   songList?: string
@@ -346,22 +363,37 @@ type Submission = {
   authorName: string
   description?: string
   tags?: string[]
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'merged'
+  reviewNote?: string
   createdAt: string
+}
+
+const SITE_LABELS: Record<string, string> = {
+  studio: '门户',
+  'jack-tan': 'Jack Tan',
+  'jack-pose': 'Jack Pose',
+  'jack-wave': 'Jack Wave',
+  'jack-talk': 'Jack Talk',
+  'jack-craft': 'Jack Craft',
 }
 
 function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => void }) {
   const [list, setList] = useState<Submission[]>([])
   const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 })
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'merged'>('all')
+  const [siteFilter, setSiteFilter] = useState<string>('all')
+  const [notes, setNotes] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const qs = filter === 'all' ? '' : `?status=${filter}`
-      const res = await api(`/api/submissions${qs}`)
+      const qs = new URLSearchParams()
+      if (filter !== 'all') qs.set('status', filter)
+      if (siteFilter !== 'all') qs.set('siteId', siteFilter)
+      const suffix = qs.toString() ? `?${qs.toString()}` : ''
+      const res = await api(`/api/submissions${suffix}`)
       const json = await res.json()
       if (res.ok) {
         setList(json.submissions || [])
@@ -373,7 +405,7 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
     } finally {
       setLoading(false)
     }
-  }, [filter, onToast])
+  }, [filter, siteFilter, onToast])
 
   useEffect(() => {
     load()
@@ -384,7 +416,7 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
     try {
       const res = await api('/api/submissions', {
         method: 'PATCH',
-        body: JSON.stringify({ id, status }),
+        body: JSON.stringify({ id, status, reviewNote: notes[id] || undefined }),
       })
       const json = await res.json()
       if (res.ok) {
@@ -394,6 +426,27 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
     } catch (e) {
       if ((e as Error).message === 'AUTH') return
       onToast('err', `${verb}失败`)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const merge = async (id: string) => {
+    if (!confirm('将该投稿并入 Jack Wave 已发布歌单？（曲目为文本行，可稍后在歌单管理补全音源）')) return
+    setBusyId(id)
+    try {
+      const res = await api('/api/submissions', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'merge', id }),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        onToast('ok', '已并入歌单（≤60s 前端可见）')
+        load()
+      } else onToast('err', json.error || '并入失败')
+    } catch (e) {
+      if ((e as Error).message === 'AUTH') return
+      onToast('err', '并入失败')
     } finally {
       setBusyId(null)
     }
@@ -427,16 +480,38 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
           </p>
         </div>
         <div className="admin-filters">
-          {(['all', 'pending', 'approved', 'rejected'] as const).map((f) => (
+          {(['all', 'pending', 'approved', 'rejected', 'merged'] as const).map((f) => (
             <button
               key={f}
               className={`admin-filter ${filter === f ? 'is-active' : ''}`}
               onClick={() => setFilter(f)}
             >
-              {f === 'all' ? '全部' : f === 'pending' ? '待审' : f === 'approved' ? '通过' : '拒绝'}
+              {f === 'all'
+                ? '全部'
+                : f === 'pending'
+                  ? '待审'
+                  : f === 'approved'
+                    ? '通过'
+                    : f === 'merged'
+                      ? '已并入'
+                      : '拒绝'}
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="admin-filters" style={{ marginTop: 8 }}>
+        {['all', 'jack-wave', 'jack-talk', 'jack-craft', 'jack-pose', 'jack-tan', 'studio'].map(
+          (s) => (
+            <button
+              key={s}
+              className={`admin-filter ${siteFilter === s ? 'is-active' : ''}`}
+              onClick={() => setSiteFilter(s)}
+            >
+              {s === 'all' ? '全部站点' : SITE_LABELS[s]}
+            </button>
+          ),
+        )}
       </div>
 
       {loading ? (
@@ -449,11 +524,20 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
             <article key={s.id} className="admin-card">
               <div className="admin-card-top">
                 <div>
-                  <div className="admin-card-title">{s.playlistName}</div>
-                  <div className="admin-card-author">by {s.authorName}</div>
+                  <div className="admin-card-title">{s.playlistName || '（反馈）'}</div>
+                  <div className="admin-card-author">
+                    {s.authorName ? `by ${s.authorName}` : '匿名'} ·{' '}
+                    {SITE_LABELS[s.siteId || 'jack-wave'] || s.siteId} · {s.type}
+                  </div>
                 </div>
-                <span className={`admin-status admin-status--${s.status}`}>
-                  {s.status === 'pending' ? '待审' : s.status === 'approved' ? '已通过' : '已拒绝'}
+                <span className={`admin-status admin-status--${s.status === 'merged' ? 'approved' : s.status}`}>
+                  {s.status === 'pending'
+                    ? '待审'
+                    : s.status === 'approved'
+                      ? '已通过'
+                      : s.status === 'merged'
+                        ? '已并入'
+                        : '已拒绝'}
                 </span>
               </div>
               {s.description && <p className="admin-card-desc">{s.description}</p>}
@@ -472,10 +556,22 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
                   ))}
                 </div>
               )}
+              {s.reviewNote && <p className="admin-card-desc">审核备注：{s.reviewNote}</p>}
               <div className="admin-card-foot">
                 <span className="admin-card-time">{new Date(s.createdAt).toLocaleString('zh-CN')}</span>
                 <div className="admin-card-actions">
-                  {s.status !== 'approved' && (
+                  {s.status === 'approved' &&
+                    (s.siteId || 'jack-wave') === 'jack-wave' &&
+                    ['link', 'manual', 'screenshot'].includes(s.type) && (
+                      <button
+                        className="admin-btn admin-btn--primary"
+                        disabled={busyId === s.id}
+                        onClick={() => merge(s.id)}
+                      >
+                        并入歌单
+                      </button>
+                    )}
+                  {s.status !== 'approved' && s.status !== 'merged' && (
                     <button
                       className="admin-btn admin-btn--ok"
                       disabled={busyId === s.id}
@@ -484,7 +580,7 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
                       通过
                     </button>
                   )}
-                  {s.status !== 'rejected' && (
+                  {s.status !== 'rejected' && s.status !== 'merged' && (
                     <button
                       className="admin-btn admin-btn--warn"
                       disabled={busyId === s.id}
@@ -502,6 +598,15 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
                   </button>
                 </div>
               </div>
+              {s.status === 'pending' && (
+                <input
+                  className="admin-input"
+                  style={{ marginTop: 10 }}
+                  placeholder="审核备注（可选，随通过/拒绝保存）"
+                  value={notes[s.id] || ''}
+                  onChange={(e) => setNotes((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                />
+              )}
             </article>
           ))}
         </div>
@@ -617,6 +722,429 @@ function StatsPanel() {
                         {k} {v}
                       </span>
                     ))
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  )
+}
+
+// ── 文章内容中枢（P1）──────────────────────────────────────
+interface ContentItem {
+  id: string
+  siteId: string
+  type: string
+  status: 'draft' | 'published' | 'archived'
+  title: string
+  summary?: string
+  body?: string
+  tags?: string[]
+  createdAt: string
+  updatedAt: string
+  publishedAt: string | null
+}
+
+const CONTENT_SITE = 'studio'
+const CONTENT_TYPE = 'article'
+
+function contentKey(siteId: string, type: string, id: string): string {
+  return `site:${siteId}:content:${type}:${id}`
+}
+
+function newSlug(): string {
+  const d = new Date(Date.now() + 8 * 3600 * 1000)
+  const ymd = d.toISOString().slice(0, 10).replace(/-/g, '')
+  return `note-${ymd}-${Math.random().toString(36).slice(2, 6)}`
+}
+
+function ContentPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => void }) {
+  const [items, setItems] = useState<ContentItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all')
+  const [editing, setEditing] = useState<ContentItem | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const qs = new URLSearchParams({ siteId: CONTENT_SITE, type: CONTENT_TYPE, limit: '100' })
+      if (statusFilter !== 'all') qs.set('status', statusFilter)
+      const res = await api(`/api/content?${qs.toString()}`)
+      const json = await res.json()
+      if (res.ok) setItems(json.items || [])
+      else onToast('err', json.error || '加载失败')
+    } catch (e) {
+      if ((e as Error).message === 'AUTH') return
+      onToast('err', '加载失败')
+    } finally {
+      setLoading(false)
+    }
+  }, [statusFilter, onToast])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const startNew = () => {
+    const now = new Date().toISOString()
+    setEditing({
+      id: newSlug(),
+      siteId: CONTENT_SITE,
+      type: CONTENT_TYPE,
+      status: 'draft',
+      title: '',
+      summary: '',
+      body: '',
+      tags: [],
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: null,
+    })
+  }
+
+  const openItem = async (item: ContentItem) => {
+    try {
+      const res = await api(`/api/content?key=${encodeURIComponent(contentKey(item.siteId, item.type, item.id))}`)
+      const json = await res.json()
+      if (res.ok) setEditing(json.content)
+      else onToast('err', json.error || '读取失败')
+    } catch (e) {
+      if ((e as Error).message !== 'AUTH') onToast('err', '读取失败')
+    }
+  }
+
+  const save = async (statusOverride?: ContentItem['status']) => {
+    if (!editing) return
+    if (!editing.title.trim()) {
+      onToast('err', '标题不能为空')
+      return
+    }
+    setSaving(true)
+    try {
+      const payload = { ...editing, status: statusOverride || editing.status }
+      const key = contentKey(editing.siteId, editing.type, editing.id)
+      const res = await api(`/api/content?key=${encodeURIComponent(key)}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        onToast('ok', statusOverride === 'published' ? '已保存并发布' : '已保存')
+        setEditing(json.content)
+        load()
+      } else onToast('err', json.error || '保存失败')
+    } catch (e) {
+      if ((e as Error).message !== 'AUTH') onToast('err', '保存失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const changeStatus = async (action: 'publish' | 'unpublish' | 'archive') => {
+    if (!editing) return
+    setSaving(true)
+    try {
+      const key = contentKey(editing.siteId, editing.type, editing.id)
+      const res = await api('/api/content', {
+        method: 'POST',
+        body: JSON.stringify({ action, key }),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        onToast('ok', action === 'publish' ? '已发布' : action === 'unpublish' ? '已下线' : '已归档')
+        setEditing(json.content)
+        load()
+      } else onToast('err', json.error || '操作失败')
+    } catch (e) {
+      if ((e as Error).message !== 'AUTH') onToast('err', '操作失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async () => {
+    if (!editing) return
+    if (!confirm('确认删除这篇文章？（不可恢复）')) return
+    setSaving(true)
+    try {
+      const key = contentKey(editing.siteId, editing.type, editing.id)
+      const res = await api(`/api/content?key=${encodeURIComponent(key)}`, { method: 'DELETE' })
+      if (res.ok) {
+        onToast('ok', '已删除')
+        setEditing(null)
+        load()
+      } else onToast('err', '删除失败')
+    } catch (e) {
+      if ((e as Error).message !== 'AUTH') onToast('err', '删除失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <section className="admin-panel">
+        <div className="admin-panel-head">
+          <div>
+            <h2 className="admin-h2">编辑文章</h2>
+            <p className="admin-meta">
+              {contentKey(editing.siteId, editing.type, editing.id)} · 状态{' '}
+              <span className="admin-tag">{editing.status}</span>
+            </p>
+          </div>
+          <div className="admin-actions">
+            <button className="admin-btn admin-btn--ghost" onClick={() => setEditing(null)}>
+              ← 返回列表
+            </button>
+          </div>
+        </div>
+
+        <label className="admin-meta">标题</label>
+        <input
+          className="admin-input"
+          value={editing.title}
+          maxLength={120}
+          onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+        />
+        <label className="admin-meta" style={{ display: 'block', marginTop: 10 }}>
+          Slug（URL 标识，创建后不可改）
+        </label>
+        <input className="admin-input" value={editing.id} disabled />
+        <label className="admin-meta" style={{ display: 'block', marginTop: 10 }}>
+          摘要（列表页与分享卡片用，≤300 字）
+        </label>
+        <textarea
+          className="admin-textarea"
+          rows={2}
+          value={editing.summary || ''}
+          onChange={(e) => setEditing({ ...editing, summary: e.target.value })}
+        />
+        <label className="admin-meta" style={{ display: 'block', marginTop: 10 }}>
+          标签（逗号分隔，≤8 个）
+        </label>
+        <input
+          className="admin-input"
+          value={(editing.tags || []).join(', ')}
+          onChange={(e) =>
+            setEditing({
+              ...editing,
+              tags: e.target.value
+                .split(/[,，]/)
+                .map((t) => t.trim())
+                .filter(Boolean)
+                .slice(0, 8),
+            })
+          }
+        />
+        <label className="admin-meta" style={{ display: 'block', marginTop: 10 }}>
+          正文（Markdown）
+        </label>
+        <textarea
+          className="admin-textarea"
+          rows={18}
+          value={editing.body || ''}
+          onChange={(e) => setEditing({ ...editing, body: e.target.value })}
+        />
+
+        <div className="admin-actions" style={{ marginTop: 14, flexWrap: 'wrap' }}>
+          <button className="admin-btn admin-btn--ghost" disabled={saving} onClick={() => save()}>
+            保存草稿
+          </button>
+          {editing.status !== 'published' ? (
+            <button className="admin-btn admin-btn--primary" disabled={saving} onClick={() => save('published')}>
+              保存并发布
+            </button>
+          ) : (
+            <button className="admin-btn admin-btn--warn" disabled={saving} onClick={() => changeStatus('unpublish')}>
+              下线
+            </button>
+          )}
+          {editing.status === 'published' && (
+            <button className="admin-btn admin-btn--ghost" disabled={saving} onClick={() => changeStatus('archive')}>
+              归档
+            </button>
+          )}
+          <button className="admin-btn admin-btn--danger" disabled={saving} onClick={remove}>
+            删除
+          </button>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="admin-panel">
+      <div className="admin-panel-head">
+        <div>
+          <h2 className="admin-h2">文章（Notes）</h2>
+          <p className="admin-meta">内容中枢首个跨站内容类型 · 发布后经 /notes 对外可见（≤60s）</p>
+        </div>
+        <div className="admin-actions">
+          <button className="admin-btn admin-btn--primary" onClick={startNew}>
+            ＋ 新文章
+          </button>
+        </div>
+      </div>
+
+      <div className="admin-filters">
+        {(['all', 'draft', 'published', 'archived'] as const).map((f) => (
+          <button
+            key={f}
+            className={`admin-filter ${statusFilter === f ? 'is-active' : ''}`}
+            onClick={() => setStatusFilter(f)}
+          >
+            {f === 'all' ? '全部' : f === 'draft' ? '草稿' : f === 'published' ? '已发布' : '已归档'}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="admin-loading">读取中…</div>
+      ) : items.length === 0 ? (
+        <div className="admin-empty">暂无文章，点右上角「新文章」开始</div>
+      ) : (
+        <div className="admin-cards">
+          {items.map((it) => (
+            <article key={it.id} className="admin-card">
+              <div className="admin-card-top">
+                <div>
+                  <div className="admin-card-title">{it.title || '（无标题）'}</div>
+                  <div className="admin-card-author">
+                    /notes/{it.id} · 更新于 {new Date(it.updatedAt).toLocaleString('zh-CN')}
+                  </div>
+                </div>
+                <span
+                  className={`admin-status admin-status--${it.status === 'published' ? 'approved' : it.status === 'draft' ? 'pending' : 'rejected'}`}
+                >
+                  {it.status === 'draft' ? '草稿' : it.status === 'published' ? '已发布' : '已归档'}
+                </span>
+              </div>
+              {it.summary && <p className="admin-card-desc">{it.summary}</p>}
+              <div className="admin-card-foot">
+                <span className="admin-card-time">{(it.tags || []).map((t) => `#${t}`).join(' ')}</span>
+                <div className="admin-card-actions">
+                  <button className="admin-btn admin-btn--ghost" onClick={() => openItem(it)}>
+                    编辑
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ── 操作审计面板（P0-4 + 迷你回滚）──────────────────────────
+interface AuditEntry {
+  at: string
+  op: string
+  actor: string
+  target: string
+  summary: string
+  before?: any
+  after?: any
+}
+
+function AuditPanel() {
+  const now = new Date(Date.now() + 8 * 3600 * 1000)
+  const [month, setMonth] = useState(now.toISOString().slice(0, 7))
+  const [entries, setEntries] = useState<AuditEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await api(`/api/audit?month=${month}`)
+      const json = await res.json()
+      if (res.ok) setEntries(json.entries || [])
+    } catch {
+      /* AUTH 等静默 */
+    } finally {
+      setLoading(false)
+    }
+  }, [month])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const canRollback = (e: AuditEntry) =>
+    !!e.before && (e.target.startsWith('site:') || e.target === 'data:playlists')
+
+  const rollback = async (e: AuditEntry) => {
+    if (!confirm(`将「${e.target}」还原到该操作之前的状态？`)) return
+    setBusy(true)
+    try {
+      let res: Response
+      if (e.target === 'data:playlists') {
+        res = await api('/api/data', { method: 'PUT', body: JSON.stringify(e.before) })
+      } else {
+        res = await api(`/api/content?key=${encodeURIComponent(e.target)}`, {
+          method: 'PUT',
+          body: JSON.stringify(e.before),
+        })
+      }
+      const json = await res.json().catch(() => ({}))
+      alert(res.ok ? '已还原（≤60s 前端可见）' : json.error || '还原失败')
+      load()
+    } catch {
+      alert('还原失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="admin-panel">
+      <div className="admin-panel-head">
+        <div>
+          <h2 className="admin-h2">操作审计</h2>
+          <p className="admin-meta">所有写操作留痕 · 带快照的条目可一键还原</p>
+        </div>
+        <div className="admin-actions">
+          <input
+            className="admin-input"
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value || month)}
+          />
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="admin-loading">读取中…</div>
+      ) : entries.length === 0 ? (
+        <div className="admin-empty">本月暂无操作记录</div>
+      ) : (
+        <table className="admin-stats-table">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>操作</th>
+              <th>对象</th>
+              <th>摘要</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((e, i) => (
+              <tr key={i}>
+                <td className="admin-stats-num">{new Date(e.at).toLocaleString('zh-CN')}</td>
+                <td className="admin-stats-num">{e.op}</td>
+                <td style={{ maxWidth: 220, wordBreak: 'break-all' }}>{e.target}</td>
+                <td>{e.summary}</td>
+                <td>
+                  {canRollback(e) && (
+                    <button className="admin-btn admin-btn--ghost" disabled={busy} onClick={() => rollback(e)}>
+                      还原
+                    </button>
                   )}
                 </td>
               </tr>

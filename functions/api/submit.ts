@@ -3,12 +3,23 @@
 // ============================================================
 
 import { getKv, handlePreflight, withCors } from '../_lib/cors';
+import { appendAudit } from '../_lib/audit';
 
 export const onRequestOptions: PagesFunction<Env> = (context) =>
   handlePreflight(context.request, context.env);
 
-/** 允许的投稿类型白名单 */
-const ALLOWED_TYPES = ['link', 'manual', 'screenshot'] as const;
+/** 允许的投稿类型白名单（link/manual/screenshot 为 wave 歌单投稿的既有形态） */
+const ALLOWED_TYPES = ['link', 'manual', 'screenshot', 'topic', 'feedback'] as const;
+
+/** 允许的站点白名单（与 registry/projects.ts 对齐） */
+const ALLOWED_SITES = [
+  'studio',
+  'jack-tan',
+  'jack-pose',
+  'jack-wave',
+  'jack-talk',
+  'jack-craft',
+] as const;
 
 /** 字段长度限制 */
 const LIMITS = {
@@ -93,14 +104,18 @@ async function handleSubmit(context: PagesFunctionContext): Promise<Response> {
 
     // 2. 解析请求体
     const body = (await context.request.json()) as Record<string, any>;
-    const { type, linkUrl, songList, playlistName, authorName, description, tags } = body;
+    const { type, linkUrl, songList, playlistName, authorName, description, tags, siteId } = body;
 
-    // 3. 必填校验
-    if (!playlistName || !authorName) {
-      return Response.json({ error: '歌单名称和署名为必填项' }, { status: 400 });
+    // 2b. siteId 白名单（缺省回退 jack-wave，兼容既有投稿表单）
+    const submissionSite = siteId ? String(siteId) : 'jack-wave';
+    if (!ALLOWED_SITES.includes(submissionSite as (typeof ALLOWED_SITES)[number])) {
+      return Response.json(
+        { error: `无效的站点，只允许: ${ALLOWED_SITES.join(', ')}` },
+        { status: 400 },
+      );
     }
 
-    // 4. type 白名单
+    // 3. type 白名单（缺省 link，兼容既有表单）
     const submissionType = type || 'link';
     if (!ALLOWED_TYPES.includes(submissionType)) {
       return Response.json(
@@ -109,9 +124,37 @@ async function handleSubmit(context: PagesFunctionContext): Promise<Response> {
       );
     }
 
+    // 3b. 站点 ↔ 类型配对校验
+    //   jack-wave：link / manual / screenshot（既有歌单投稿形态）
+    //   jack-talk：topic（选题投稿）
+    //   其余站点：feedback（通用反馈）
+    if (submissionSite === 'jack-wave') {
+      if (!['link', 'manual', 'screenshot'].includes(submissionType)) {
+        return Response.json(
+          { error: 'Jack Wave 站点仅接受 link / manual / screenshot 类型的歌单投稿' },
+          { status: 400 },
+        );
+      }
+    } else if (submissionSite === 'jack-talk') {
+      if (submissionType !== 'topic') {
+        return Response.json({ error: 'Jack Talk 站点仅接受 topic 类型的选题投稿' }, { status: 400 });
+      }
+    } else if (submissionType !== 'feedback') {
+      return Response.json({ error: '该站点仅接受 feedback 类型的反馈投稿' }, { status: 400 });
+    }
+
+    // 4. 必填校验（按类型区分）
+    if (submissionType === 'feedback') {
+      if (!description || String(description).trim().length < 5) {
+        return Response.json({ error: '反馈内容至少 5 个字' }, { status: 400 });
+      }
+    } else if (!playlistName || !authorName) {
+      return Response.json({ error: '标题和署名为必填项' }, { status: 400 });
+    }
+
     // 5. 长度校验
-    const strPlaylistName = String(playlistName);
-    const strAuthorName = String(authorName);
+    const strPlaylistName = playlistName ? String(playlistName) : '';
+    const strAuthorName = authorName ? String(authorName) : '';
     const strDescription = description ? String(description) : '';
     const strSongList = songList ? String(songList) : '';
     const strLinkUrl = linkUrl ? String(linkUrl) : '';
@@ -160,6 +203,7 @@ async function handleSubmit(context: PagesFunctionContext): Promise<Response> {
     // 列表读取通过 kv.list({ prefix: 'submission:' }) 枚举，无需索引 key
     const submission = {
       id: crypto.randomUUID(),
+      siteId: submissionSite,
       type: submissionType,
       linkUrl: strLinkUrl,
       songList: strSongList,
@@ -172,6 +216,12 @@ async function handleSubmit(context: PagesFunctionContext): Promise<Response> {
     };
 
     await kv.put(`submission:${submission.id}`, JSON.stringify(submission));
+
+    await appendAudit(kv, {
+      op: 'submit.create',
+      target: `submission:${submission.id}`,
+      summary: `新投稿 ${submissionSite}/${submissionType}：${strPlaylistName || strDescription.slice(0, 30)}`,
+    });
 
     return Response.json({ success: true, id: submission.id, remaining: rateLimit.remaining });
   } catch (e) {

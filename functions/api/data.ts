@@ -7,6 +7,7 @@
 
 import { authenticateAdmin } from '../_lib/adminAuth';
 import { getKv, handlePreflight, withCors } from '../_lib/cors';
+import { appendAudit } from '../_lib/audit';
 
 export const onRequestOptions: PagesFunction<Env> = (context) =>
   handlePreflight(context.request, context.env);
@@ -80,7 +81,7 @@ async function handlePut(context: PagesFunctionContext): Promise<Response> {
 
   try {
     const kv = getKv(context.env);
-    const body = await context.request.json();
+    const body = (await context.request.json()) as any;
 
     const validation = validateDataStructure(body);
     if (!validation.valid) {
@@ -95,8 +96,20 @@ async function handlePut(context: PagesFunctionContext): Promise<Response> {
       );
     }
 
+    const rawBefore = await kv.get('data:playlists');
+    const before = rawBefore ? JSON.parse(rawBefore) : null;
+
     await kv.put('data:playlists', serialized);
     await kv.put('data:playlists:updatedAt', new Date().toISOString());
+
+    await appendAudit(kv, {
+      op: 'data.put',
+      target: 'data:playlists',
+      summary: `保存歌单数据（心情刊 ${body.moodPlaylists.length} 期 / 月度 ${body.monthlyShares.length} 期）`,
+      before: before || undefined,
+      after: body,
+    });
+
     return Response.json({ success: true, size: serialized.length });
   } catch (e) {
     console.error('[data:PUT] KV 写入失败:', e);
@@ -114,8 +127,16 @@ async function handleDelete(context: PagesFunctionContext): Promise<Response> {
 
   try {
     const kv = getKv(context.env);
+    const rawBefore = await kv.get('data:playlists');
+    const before = rawBefore ? JSON.parse(rawBefore) : null;
     await kv.delete('data:playlists');
     await kv.delete('data:playlists:updatedAt');
+    await appendAudit(kv, {
+      op: 'data.delete',
+      target: 'data:playlists',
+      summary: '清空歌单数据（回退静态种子）',
+      before: before || undefined,
+    });
     return Response.json({ success: true });
   } catch (e) {
     console.error('[data:DELETE] KV 删除失败:', e);

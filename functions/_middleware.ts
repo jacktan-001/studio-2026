@@ -50,6 +50,11 @@ const SITE_MAP: Record<string, RouteMeta> = {
     title: 'Jack Craft · 工艺',
     desc: '生成式的视觉工艺实验场。',
   },
+  '/notes': {
+    avatar: '/avatars/studio.png',
+    title: 'Notes · 随笔',
+    desc: '田嘉诚的随笔与思考：安全监管与创意宇宙的两条线。',
+  },
 }
 
 const SITE_IDS = ['jack-tan', 'jack-pose', 'jack-wave', 'jack-talk', 'jack-craft']
@@ -57,6 +62,7 @@ const SITE_IDS = ['jack-tan', 'jack-pose', 'jack-wave', 'jack-talk', 'jack-craft
 /** 是否与站内已知路由匹配（用于区分"合法深链"与"垃圾路径"）。 */
 function isKnownRoute(pathname: string): boolean {
   if (pathname === '/' || pathname === '/admin') return true
+  if (pathname === '/notes' || pathname.startsWith('/notes/')) return true
   // 五个分站及其子路径（如 /jack-pose/studio、/jack-tan/intro）
   if (SITE_IDS.some((id) => pathname === `/${id}` || pathname.startsWith(`/${id}/`))) return true
   // 其余未知单段 / 双段（如 /foo、/foo/intro）一律视为未知 → 404
@@ -183,6 +189,15 @@ function buildJsonLd(siteKey: string, origin: string): Record<string, unknown> {
         operatingSystem: 'Web',
         url: origin + '/jack-craft',
         description: '生成式的视觉工艺实验场：一条规则、一颗种子，长出未见之形。',
+      }
+    case '/notes':
+      return {
+        ...base,
+        '@type': 'Blog',
+        name: 'Notes · 随笔',
+        url: origin + '/notes',
+        description: '田嘉诚的随笔与思考：安全监管与创意宇宙的两条线。',
+        author: { '@type': 'Person', name: '田嘉诚', alternateName: 'Jack Tan' },
       }
     default:
       return {

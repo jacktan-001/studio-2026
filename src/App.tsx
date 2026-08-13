@@ -18,6 +18,7 @@ import JackWave from './sites/jack-wave'
 import JackTalk from './sites/jack-talk'
 import JackCraft from './sites/jack-craft'
 import Admin from './sites/admin'
+import Notes, { NoteArticle } from './sites/notes'
 import { ProjectIntro } from './sites/ProjectIntro'
 import { ProjectStub } from './sites/ProjectStub'
 
@@ -57,6 +58,8 @@ export default function App() {
                   <Route path="/jack-talk" element={<JackTalk />} />
                   <Route path="/jack-craft" element={<JackCraft />} />
                   <Route path="/admin" element={<Admin />} />
+                  <Route path="/notes" element={<Notes />} />
+                  <Route path="/notes/:slug" element={<NoteArticle />} />
                   <Route path="/:projectId/intro" element={<ProjectIntro />} />
                   <Route path="/:projectId" element={<ProjectStub />} />
                   <Route path="*" element={<Portal />} />
