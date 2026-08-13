@@ -2113,6 +2113,23 @@ html.cursor-hover-active-host {
 .mood-gallery {
   position: relative;
   user-select: none;
+  /* 3D 环半径 / 卡片宽高 / 封面高度，按断点自适应（MoodGallery 内联 transform 读取 --mood-r） */
+  --mood-r: 460px;
+  --mood-w: 320px;
+  --mood-h: 460px;
+  --mood-cover: 200px;
+}
+@media (max-width: 1000px) {
+  .mood-gallery { --mood-r: 400px; --mood-w: 290px; --mood-h: 430px; --mood-cover: 180px; }
+}
+@media (max-width: 720px) {
+  .mood-gallery { --mood-r: 330px; --mood-w: 250px; --mood-h: 400px; --mood-cover: 160px; }
+}
+@media (max-width: 520px) {
+  .mood-gallery { --mood-r: 260px; --mood-w: 220px; --mood-h: 370px; --mood-cover: 140px; }
+}
+@media (max-width: 400px) {
+  .mood-gallery { --mood-r: 220px; --mood-w: 200px; --mood-h: 340px; --mood-cover: 128px; }
 }
 .mood-gallery-hint {
   display: flex;
@@ -2163,9 +2180,9 @@ html.cursor-hover-active-host {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 320px;
-  height: 460px;
-  margin: -230px 0 0 -160px;
+  width: var(--mood-w);
+  height: var(--mood-h);
+  margin: calc(var(--mood-h) / -2) 0 0 calc(var(--mood-w) / -2);
   transform-style: preserve-3d;
   transition: opacity 0.5s var(--ease), filter 0.5s var(--ease);
   opacity: 0.55;
@@ -2228,7 +2245,7 @@ html.cursor-hover-active-host {
 }
 .mood-card-cover {
   position: relative;
-  height: 200px;
+  height: var(--mood-cover);
   flex: none;
 }
 .mood-card-art {
@@ -2577,7 +2594,7 @@ html.cursor-hover-active-host {
   transform: none !important;
   opacity: 1;
   filter: none;
-  flex: 0 0 300px;
+  flex: 0 0 var(--mood-w);
   scroll-snap-align: center;
 }
 /* 平面模式（reduced-motion）：翻面降级为淡入淡出，不做 3D 旋转 */
@@ -2604,11 +2621,6 @@ html.cursor-hover-active-host {
 }
 
 @media (max-width: 760px) {
-  .mood-card {
-    width: 280px;
-    height: 440px;
-    margin: -220px 0 0 -140px;
-  }
   .mood-card-title {
     font-size: 23px;
   }

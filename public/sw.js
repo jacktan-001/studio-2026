@@ -3,7 +3,7 @@
 // 离线壳层：导航网络优先 → 离线回退已缓存 index.html（SPA 可用）
 // 静态资源（JS/CSS/图片/字体）缓存优先，后台更新
 // ============================================================
-const CACHE = 'studio-2026-v1'
+const CACHE = 'studio-2026-v2'
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg']
 
 self.addEventListener('install', (event) => {

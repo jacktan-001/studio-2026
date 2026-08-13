@@ -90,12 +90,12 @@ export function MoodGallery() {
         <div
           className="mood-ring"
           style={{
-            transform: `translateZ(-460px) rotateX(-4deg) rotateY(${angle}deg)`,
+            transform: `translateZ(calc(var(--mood-r) * -1)) rotateX(-4deg) rotateY(${angle}deg)`,
           }}
         >
           {playlists.map((pl, i) => {
             const isActive = i === activeIndex
-            const transform = `rotateY(${i * STEP}deg) translateZ(460px)`
+            const transform = `rotateY(${i * STEP}deg) translateZ(var(--mood-r))`
             return (
               <div
                 key={pl.id}
