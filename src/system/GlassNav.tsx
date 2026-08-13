@@ -56,6 +56,20 @@ export function GlassNav() {
             {p.status === 'coming-soon' && <span className="nav-chip-soon">soon</span>}
           </TransitionLink>
         ))}
+        <TransitionLink
+          to="/notes"
+          className={`nav-chip ${isActive('/notes') ? 'is-active' : ''}`}
+        >
+          <span className="nav-chip-dot" />
+          Notes
+        </TransitionLink>
+        <TransitionLink
+          to="/admin"
+          className={`nav-chip ${isActive('/admin') ? 'is-active' : ''}`}
+        >
+          <span className="nav-chip-dot" />
+          管理
+        </TransitionLink>
       </nav>
 
       <button
@@ -88,6 +102,11 @@ export function GlassNav() {
                 <span className="nav-overlay-role">{p.role}</span>
               </TransitionLink>
             ))}
+            <TransitionLink to="/notes" className={`nav-overlay-item ${isActive('/notes') ? 'is-active' : ''}`}>
+              <span className="nav-overlay-num">✎</span>
+              Notes 随笔
+              <span className="nav-overlay-role">JOURNAL</span>
+            </TransitionLink>
             <TransitionLink to="/admin" className="nav-overlay-item nav-overlay-admin">
               <span className="nav-overlay-num">⚙</span>
               管理后台

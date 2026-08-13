@@ -5756,3 +5756,17 @@ html.cursor-hover-active-host {
   background: rgba(255,255,255,0.02);
 }
 .pl-edit-song .pl-edit-grid { align-items: end; }
+
+/* ── 门户页脚常驻入口（Notes / 管理后台，无条件显示）────── */
+.portal-footer-links {
+  display: flex; align-items: center; justify-content: center;
+  gap: 14px; margin: 18px 0 6px;
+}
+.portal-footer-link {
+  font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.08em;
+  color: var(--muted); text-decoration: none;
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 16px;
+  transition: color 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+.portal-footer-link:hover { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.5); }
+.portal-footer-sep { color: var(--muted); }

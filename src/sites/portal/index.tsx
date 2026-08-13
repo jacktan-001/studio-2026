@@ -89,6 +89,15 @@ export default function Portal() {
       {/* ── Footer ───────────────────────────────────────────── */}
       <footer className="portal-footer">
         <div className="portal-footer-motto">联系我</div>
+        <div className="portal-footer-links">
+          <TransitionLink to="/notes" className="portal-footer-link">
+            Notes 随笔
+          </TransitionLink>
+          <span className="portal-footer-sep" aria-hidden="true">·</span>
+          <TransitionLink to="/admin" className="portal-footer-link">
+            管理后台
+          </TransitionLink>
+        </div>
         <div className="portal-footer-meta">
           <ContactBar />
         </div>
