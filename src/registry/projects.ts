@@ -123,6 +123,26 @@ export const PROJECTS: ProjectMeta[] = [
     ],
     tech: ['React 19', 'WebGL', 'GLSL', 'Generative', 'Vite'],
   },
+  {
+    id: 'notes',
+    name: 'Jack Notes',
+    shortName: 'Notes',
+    href: '/notes',
+    status: 'live',
+    tagline: '随笔 · 想法 · 观察',
+    role: 'Journal',
+    themeKey: 'gold',
+    year: '2026',
+    description:
+      'Jack Notes 是主理人的随笔与思考空间。记录民航安全、工程实践、设计决策与创作过程中的片段，把未成文的观察整理成可读的短文。',
+    features: [
+      '月度随笔：按主题整理的短文章',
+      '公开只读：经 KV 同步的轻量内容',
+      'RSS 友好：未来可订阅更新',
+      '与子站联动：为各项目提供背景注解',
+    ],
+    tech: ['React 19', 'Cloudflare KV', 'Markdown', 'Vite'],
+  },
 ]
 
 /** Map a route pathname to a theme key. Portal + jack-tan default to violet. */

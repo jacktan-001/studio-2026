@@ -57,14 +57,6 @@ export function GlassNav() {
           </TransitionLink>
         ))}
         <TransitionLink
-          to="/notes"
-          className={`nav-chip ${isActive('/notes') ? 'is-active' : ''}`}
-          data-theme-key="gold"
-        >
-          <span className="nav-chip-dot" />
-          Jack Notes
-        </TransitionLink>
-        <TransitionLink
           to="/admin"
           className={`nav-chip ${isActive('/admin') ? 'is-active' : ''}`}
           data-theme-key="violet"
@@ -104,15 +96,14 @@ export function GlassNav() {
                 <span className="nav-overlay-role">{p.role}</span>
               </TransitionLink>
             ))}
-            <TransitionLink to="/notes" className={`nav-overlay-item ${isActive('/notes') ? 'is-active' : ''}`} data-theme-key="gold">
-              <span className="nav-overlay-num">✎</span>
-              Jack Notes
-              <span className="nav-overlay-role">JOURNAL</span>
-            </TransitionLink>
-            <TransitionLink to="/admin" className="nav-overlay-item nav-overlay-admin">
-              <span className="nav-overlay-num">⚙</span>
+            <TransitionLink
+              to="/admin"
+              className={`nav-overlay-item ${isActive('/admin') ? 'is-active' : ''}`}
+              data-theme-key="violet"
+            >
+              <span className="nav-overlay-num">{String(PROJECTS.length + 1).padStart(2, '0')}</span>
               admin
-              <span className="nav-overlay-role">ADMIN</span>
+              <span className="nav-overlay-role">Management</span>
             </TransitionLink>
           </div>
         </>
