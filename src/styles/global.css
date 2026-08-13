@@ -3111,6 +3111,15 @@ html.cursor-hover-active-host {
   margin-left: -50vw;
   margin-right: -50vw;
 }
+/* Site-wide generative backdrop — extends the hero particle field across
+   every craft page. Fixed behind all sections; the canvas paints its own
+   dark base so the flow-field reads consistently from hero through contact. */
+.craft-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
 .craft-canvas {
   position: absolute;
   inset: 0;
@@ -4101,6 +4110,7 @@ html.cursor-hover-active-host {
    ============================================================ */
 .wave-submit-wrap {
   max-width: 640px;
+  margin: 0 auto;
 }
 .wave-submit-intro {
   margin: 0 0 18px;

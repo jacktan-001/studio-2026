@@ -285,9 +285,13 @@ function GenerativeCanvas() {
 export default function JackCraft() {
   return (
     <div className="craft">
-      {/* ── Hero (generative backdrop) ─────────────────────── */}
-      <section className="craft-hero">
+      {/* ── Site-wide generative backdrop (persists across every craft page) ── */}
+      <div className="craft-bg" aria-hidden="true">
         <GenerativeCanvas />
+      </div>
+
+      {/* ── Hero ───────────────────────────────────────────── */}
+      <section className="craft-hero">
         <div className="craft-hero-veil" aria-hidden="true" />
         <div className="craft-hero-inner">
           <SiteAvatar siteId="jack-craft" className="site-avatar-hero" />
