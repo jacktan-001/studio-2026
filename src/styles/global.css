@@ -292,7 +292,6 @@ html.cursor-hover-active-host {
   transition: background 0.25s, box-shadow 0.25s;
 }
 .nav-chip:hover {
-  color: var(--fg);
   border-color: var(--line);
 }
 .nav-chip.is-active,
@@ -303,6 +302,62 @@ html.cursor-hover-active-host {
 .nav-chip:hover .nav-chip-dot {
   background: var(--accent);
   box-shadow: var(--glow);
+}
+
+/* Project-aware chip hover/active: each link lights up in its own accent */
+.nav-chip[data-theme-key='violet'].is-active,
+.nav-chip[data-theme-key='violet']:hover {
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.5);
+}
+.nav-chip[data-theme-key='violet'].is-active .nav-chip-dot,
+.nav-chip[data-theme-key='violet']:hover .nav-chip-dot {
+  background: #7c3aed;
+  box-shadow: 0 0 14px rgba(124, 58, 237, 0.45);
+}
+
+.nav-chip[data-theme-key='pink'].is-active,
+.nav-chip[data-theme-key='pink']:hover {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.5);
+}
+.nav-chip[data-theme-key='pink'].is-active .nav-chip-dot,
+.nav-chip[data-theme-key='pink']:hover .nav-chip-dot {
+  background: #ec4899;
+  box-shadow: 0 0 14px rgba(236, 72, 153, 0.45);
+}
+
+.nav-chip[data-theme-key='cyan'].is-active,
+.nav-chip[data-theme-key='cyan']:hover {
+  color: #06b6d4;
+  border-color: rgba(6, 182, 212, 0.5);
+}
+.nav-chip[data-theme-key='cyan'].is-active .nav-chip-dot,
+.nav-chip[data-theme-key='cyan']:hover .nav-chip-dot {
+  background: #06b6d4;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.45);
+}
+
+.nav-chip[data-theme-key='orange'].is-active,
+.nav-chip[data-theme-key='orange']:hover {
+  color: #f97316;
+  border-color: rgba(249, 115, 22, 0.5);
+}
+.nav-chip[data-theme-key='orange'].is-active .nav-chip-dot,
+.nav-chip[data-theme-key='orange']:hover .nav-chip-dot {
+  background: #f97316;
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.45);
+}
+
+.nav-chip[data-theme-key='emerald'].is-active,
+.nav-chip[data-theme-key='emerald']:hover {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+.nav-chip[data-theme-key='emerald'].is-active .nav-chip-dot,
+.nav-chip[data-theme-key='emerald']:hover .nav-chip-dot {
+  background: #10b981;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
 }
 .nav-chip.is-soon {
   opacity: 0.62;

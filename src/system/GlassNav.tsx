@@ -52,23 +52,25 @@ export function GlassNav() {
             data-theme-key={p.themeKey}
           >
             <span className="nav-chip-dot" />
-            {p.shortName}
+            Jack {p.shortName}
             {p.status === 'coming-soon' && <span className="nav-chip-soon">soon</span>}
           </TransitionLink>
         ))}
         <TransitionLink
           to="/notes"
           className={`nav-chip ${isActive('/notes') ? 'is-active' : ''}`}
+          data-theme-key="violet"
         >
           <span className="nav-chip-dot" />
-          Notes
+          Jack Notes
         </TransitionLink>
         <TransitionLink
           to="/admin"
           className={`nav-chip ${isActive('/admin') ? 'is-active' : ''}`}
+          data-theme-key="violet"
         >
           <span className="nav-chip-dot" />
-          管理
+          admin
         </TransitionLink>
       </nav>
 
@@ -104,12 +106,12 @@ export function GlassNav() {
             ))}
             <TransitionLink to="/notes" className={`nav-overlay-item ${isActive('/notes') ? 'is-active' : ''}`}>
               <span className="nav-overlay-num">✎</span>
-              Notes 随笔
+              Jack Notes
               <span className="nav-overlay-role">JOURNAL</span>
             </TransitionLink>
             <TransitionLink to="/admin" className="nav-overlay-item nav-overlay-admin">
               <span className="nav-overlay-num">⚙</span>
-              管理后台
+              admin
               <span className="nav-overlay-role">ADMIN</span>
             </TransitionLink>
           </div>
