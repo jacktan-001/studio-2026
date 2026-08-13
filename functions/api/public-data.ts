@@ -17,9 +17,14 @@ async function handleGet(context: PagesFunctionContext): Promise<Response> {
     const raw = await kv.get('data:playlists');
 
     if (raw) {
-      // 基于内容生成 ETag（SHA-256），支持条件请求
+      // 与前端读取路径对齐：fetchPlaylists / fetchMonthly 读取 json.data.*，
+      // 因此这里包装为 { source, data } 信封（与 /api/data GET 保持一致）。
+      // 此前直接返回 KV 原始值（无 data 层）导致前端永远回退静态种子。
+      const body = JSON.stringify({ source: 'kv', data: JSON.parse(raw) })
+
+      // 基于最终响应内容生成 ETag（SHA-256），支持条件请求
       const encoder = new TextEncoder();
-      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(raw));
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(body));
       const etag =
         '"' +
         Array.from(new Uint8Array(hashBuffer))
@@ -34,7 +39,7 @@ async function handleGet(context: PagesFunctionContext): Promise<Response> {
         });
       }
 
-      return new Response(raw, {
+      return new Response(body, {
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'public, max-age=60',

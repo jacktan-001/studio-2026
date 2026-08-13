@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /admin
 
 Sitemap: https://jacktan-studio.pages.dev/sitemap.xml

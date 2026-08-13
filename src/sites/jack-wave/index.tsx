@@ -14,7 +14,7 @@ const ISSUES = [
   { no: '03', title: '通勤频率', mood: '律动 / 电子', date: '2026.03', tracks: 9, note: '把地铁的节奏听成鼓点。' },
   { no: '04', title: '周末的留白', mood: '松弛 / 轻爵士', date: '2026.04', tracks: 6, note: '什么都不做的下午。' },
   { no: '05', title: '远行的预感', mood: '辽阔 / 后摇', date: '2026.05', tracks: 8, note: '出发前夜的兴奋。' },
-  { no: '06', title: '归途', mood: '温暖 / 民谣', date: '2026.06', tracks: 7, note: '回家的路最安心。' },
+  { no: '06', title: '归途', mood: '温暖 / 民谣', date: '2026.06', tracks: 6, note: '回家的路最安心。' },
 ]
 
 const SECTIONS = [

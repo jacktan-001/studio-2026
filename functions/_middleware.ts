@@ -89,6 +89,113 @@ function setMeta(html: string, attr: string, key: string, value: string): string
   return html.replace('</head>', `  <meta ${attr}="${key}" content="${value}" />\n</head>`)
 }
 
+/** 改写 <title>：让每个路由在浏览器标签与搜索结果中有独立标题。 */
+function setTitle(html: string, title: string): string {
+  if (/<title>/i.test(html)) {
+    return html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`)
+  }
+  return html.replace('</head>', `  <title>${title}</title>\n</head>`)
+}
+
+/** 注入 / 替换 canonical：指向规范化 URL，避免重复内容判定。 */
+function setCanonical(html: string, href: string): string {
+  const pattern = /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i
+  if (pattern.test(html)) {
+    return html.replace(pattern, `<link rel="canonical" href="${href}" />`)
+  }
+  return html.replace('</head>', `  <link rel="canonical" href="${href}" />\n</head>`)
+}
+
+/**
+ * 替换 id="route-jsonld" 的 JSON-LD 结构化数据块（index.html 内置默认块）。
+ * 爬虫据此识别站点 / 应用 / 人物 / 播客实体。
+ */
+function setJsonLd(html: string, obj: Record<string, unknown>): string {
+  const json = JSON.stringify(obj)
+  const pattern = /(<script\s+type="application\/ld\+json"\s+id="route-jsonld">)[\s\S]*?(<\/script>)/i
+  if (pattern.test(html)) {
+    return html.replace(pattern, `$1${json}$2`)
+  }
+  return html.replace(
+    '</head>',
+    `  <script type="application/ld+json" id="route-jsonld">${json}</script>\n</head>`,
+  )
+}
+
+const SOCIAL_SAME_AS = [
+  'https://github.com/jacktan-001',
+  'https://www.linkedin.com/in/jacktan2011',
+  'https://www.instagram.com/jacktan2011',
+  'https://space.bilibili.com/97733003',
+]
+
+/** 按站点根路径生成对应的 JSON-LD 实体。 */
+function buildJsonLd(siteKey: string, origin: string): Record<string, unknown> {
+  const base = { '@context': 'https://schema.org', inLanguage: 'zh-CN' }
+  switch (siteKey) {
+    case '/jack-tan':
+      return {
+        ...base,
+        '@type': 'Person',
+        name: '田嘉诚',
+        alternateName: 'Jack Tan',
+        jobTitle: '民航安全信息化工程师',
+        url: origin + '/jack-tan',
+        address: { '@type': 'PostalAddress', addressLocality: '北京' },
+        sameAs: SOCIAL_SAME_AS,
+      }
+    case '/jack-wave':
+      return {
+        ...base,
+        '@type': 'WebApplication',
+        name: 'Jack Wave · 音乐期刊',
+        applicationCategory: 'MusicApplication',
+        operatingSystem: 'Web',
+        url: origin + '/jack-wave',
+        description: '用音乐记录心情的月度期刊：每月一期歌单，一种心情。',
+        offers: { '@type': 'Offer', price: '0' },
+      }
+    case '/jack-pose':
+      return {
+        ...base,
+        '@type': 'WebApplication',
+        name: 'Jack Pose · 社媒排版',
+        applicationCategory: 'DesignApplication',
+        operatingSystem: 'Web',
+        url: origin + '/jack-pose',
+        description: '面向社媒的长图排版与导出工具：模板、拖拽、品牌色，一键生成。',
+        offers: { '@type': 'Offer', price: '0' },
+      }
+    case '/jack-talk':
+      return {
+        ...base,
+        '@type': 'PodcastSeries',
+        name: 'Jack Talk',
+        url: origin + '/jack-talk',
+        description: '行业对谈播客：和真正在做的人聊，把行业里没说出口的事摊开谈。',
+      }
+    case '/jack-craft':
+      return {
+        ...base,
+        '@type': 'WebApplication',
+        name: 'Jack Craft · 生成艺术',
+        applicationCategory: 'CreativeWork',
+        operatingSystem: 'Web',
+        url: origin + '/jack-craft',
+        description: '生成式的视觉工艺实验场：一条规则、一颗种子，长出未见之形。',
+      }
+    default:
+      return {
+        ...base,
+        '@type': 'WebSite',
+        name: 'Jack Tan Studio',
+        url: origin + '/',
+        description: '耳听为律，眼见为序。一个持续播放的作品宇宙。',
+        author: { '@type': 'Person', name: '田嘉诚', alternateName: 'Jack Tan' },
+      }
+  }
+}
+
 export async function onRequest(context: {
   request: Request
   next: () => Promise<Response>
@@ -137,7 +244,17 @@ export async function onRequest(context: {
   const meta = resolveMeta(pathname)
   const absImage = url.origin + meta.avatar
   const absUrl = url.origin + pathname
+  // canonical 规范化：去掉尾部斜杠（根路径保持 /）
+  const canonicalPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : '/'
+  const canonicalUrl = url.origin + canonicalPath
+  // 独立标题：根路径用站点名，子站为「站点名 | Jack Tan Studio」
+  const pageTitle = pathname === '/' ? meta.title : `${meta.title} | Jack Tan Studio`
+  // 站点根段（如 /jack-wave/intro → /jack-wave）决定 JSON-LD 实体
+  const siteKey = '/' + (pathname.split('/').filter(Boolean)[0] ?? '')
 
+  html = setTitle(html, pageTitle)
+  html = setCanonical(html, canonicalUrl)
+  html = setJsonLd(html, buildJsonLd(SITE_MAP[siteKey] ? siteKey : '/', url.origin))
   html = setMeta(html, 'property', 'og:title', meta.title)
   html = setMeta(html, 'property', 'og:image', absImage)
   html = setMeta(html, 'property', 'og:image:width', '512')
@@ -146,6 +263,10 @@ export async function onRequest(context: {
   html = setMeta(html, 'name', 'twitter:image', absImage)
   html = setMeta(html, 'name', 'twitter:title', meta.title)
   html = setMeta(html, 'name', 'description', meta.desc)
+  // 后台路由不进搜索引擎
+  if (pathname === '/admin') {
+    html = setMeta(html, 'name', 'robots', 'noindex, nofollow')
+  }
 
   return new Response(html, {
     status: 200,

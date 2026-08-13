@@ -610,18 +610,6 @@ export const MOOD_PLAYLISTS: MoodPlaylist[] = [
       },
       {
         id: '06-5',
-        title: 'Here',
-        artist: 'Mumford & Sons & Chris Stapleton',
-        src: SRC,
-        duration: '3:11',
-        appleTrackId: 1848218116,
-        appleMusicUrl: 'https://music.apple.com/us/album/here/1848218113?i=1848218116&uo=4',
-        applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c0/d0/c4/c0d0c455-94b2-a700-26c8-3479a82fd0d0/mzaf_1309647064860334784.plus.aac.p.m4a',
-        appleArtworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/54/e8/32/54e8324f-9ae0-f39c-687c-2ea6d2c77f44/199806246184.jpg/512x512bb.jpg',
-        durationMs: 191147,
-      },
-      {
-        id: '06-6',
         title: 'Wagon Wheel',
         artist: 'Old Crow Medicine Show',
         src: SRC,
@@ -633,7 +621,7 @@ export const MOOD_PLAYLISTS: MoodPlaylist[] = [
         durationMs: 232133,
       },
       {
-        id: '06-7',
+        id: '06-6',
         title: 'Take Me Home, Country Roads (Original Version)',
         artist: 'John Denver',
         src: SRC,
