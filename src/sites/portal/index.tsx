@@ -82,13 +82,13 @@ export default function Portal() {
       {/* ── Narrative band ───────────────────────────────────── */}
       <section className="portal-narrative">
         <Reveal as="p" className="portal-statement">
-          万物有律，所见成序。在这座由代码、音符与像素编织的花园里，种着音乐的碎片，养着设计的灵光。欢迎你，<em>慢慢逛</em>。
+          耳听为律·眼见为序。在这座由代码、音符与像素编织的花园里，种着音乐的碎片，养着设计的灵光。欢迎你，<em>慢慢逛</em>。
         </Reveal>
       </section>
 
       {/* ── Footer ───────────────────────────────────────────── */}
       <footer className="portal-footer">
-        <div className="portal-footer-motto">万物有律，所见成序</div>
+        <div className="portal-footer-motto">联系我</div>
         <div className="portal-footer-meta">
           <ContactBar />
         </div>
