@@ -1,7 +1,7 @@
 // Single source of truth for project registry.
 // Add a new sub-site = add ONE row here + create sites/<id>/ (2 edits, no pipeline changes).
 
-export type ThemeKey = 'violet' | 'pink' | 'cyan' | 'orange' | 'purple' | 'emerald'
+export type ThemeKey = 'violet' | 'pink' | 'cyan' | 'orange' | 'purple' | 'emerald' | 'gold'
 export type ProjectStatus = 'live' | 'coming-soon'
 
 export interface ProjectMeta {
@@ -127,6 +127,7 @@ export const PROJECTS: ProjectMeta[] = [
 
 /** Map a route pathname to a theme key. Portal + jack-tan default to violet. */
 export function getThemeKeyForPath(pathname: string): ThemeKey {
+  if (pathname === '/notes' || pathname.startsWith('/notes/')) return 'gold'
   for (const p of PROJECTS) {
     if (pathname === p.href || pathname.startsWith(p.href + '/')) return p.themeKey
   }
@@ -145,9 +146,11 @@ export type SiteId =
   | 'jack-wave'
   | 'jack-talk'
   | 'jack-craft'
+  | 'notes'
   | 'admin'
 
 export function getSiteIdForPath(pathname: string): SiteId {
+  if (pathname === '/notes' || pathname.startsWith('/notes/')) return 'notes'
   for (const p of PROJECTS) {
     if (pathname === p.href || pathname.startsWith(p.href + '/')) {
       return p.id as SiteId

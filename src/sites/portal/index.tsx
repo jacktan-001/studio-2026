@@ -79,6 +79,41 @@ export default function Portal() {
         </ul>
       </section>
 
+      {/* ── Modules (content sites that aren't product projects) ── */}
+      <section className="portal-index portal-modules">
+        <Reveal as="div" className="portal-index-head">
+          <span className="index-eyebrow">MODULES / 模块</span>
+          <span className="index-count">01 MODULE</span>
+        </Reveal>
+
+        <ul className="portal-index-list">
+          <li style={{ '--row-accent': '#f5b301' } as CSSProperties}>
+            <HoverPreviewCard
+              preview={
+                <div
+                  className="index-preview"
+                  style={{
+                    background: 'linear-gradient(150deg, #f5b301 0%, #fcd34d 120%)',
+                  }}
+                >
+                  <span className="index-preview-name">Jack Notes</span>
+                  <span className="index-preview-tag">Journal</span>
+                  <span className="index-preview-dot" />
+                </div>
+              }
+            >
+              <TransitionLink to="/notes" className="index-row" data-theme-key="gold">
+                <span className="index-num">✎</span>
+                <span className="index-name">Jack Notes</span>
+                <span className="index-role">随笔 · Journal</span>
+                <span className="index-status">LIVE</span>
+                <span className="index-arrow" aria-hidden="true">→</span>
+              </TransitionLink>
+            </HoverPreviewCard>
+          </li>
+        </ul>
+      </section>
+
       {/* ── Narrative band ───────────────────────────────────── */}
       <section className="portal-narrative">
         <Reveal as="p" className="portal-statement">

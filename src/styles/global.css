@@ -359,6 +359,16 @@ html.cursor-hover-active-host {
   background: #10b981;
   box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
 }
+.nav-chip[data-theme-key='gold'].is-active,
+.nav-chip[data-theme-key='gold']:hover {
+  color: #f5b301;
+  border-color: rgba(245, 179, 1, 0.5);
+}
+.nav-chip[data-theme-key='gold'].is-active .nav-chip-dot,
+.nav-chip[data-theme-key='gold']:hover .nav-chip-dot {
+  background: #f5b301;
+  box-shadow: 0 0 14px rgba(245, 179, 1, 0.45);
+}
 .nav-chip.is-soon {
   opacity: 0.62;
 }

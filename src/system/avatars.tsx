@@ -18,6 +18,7 @@ export const SITE_AVATARS: Record<SiteId, string> = {
   'jack-wave': '/avatars/jack-wave.jpg',
   'jack-talk': '/avatars/jack-talk.jpg',
   'jack-craft': '/avatars/jack-craft.jpg',
+  notes: '/avatars/studio.png',
   admin: '/avatars/studio.png',
 }
 

@@ -102,6 +102,19 @@ export const THEMES: Record<ThemeKey, ThemeConfig> = {
     cursor: 'dot',
     texture: 'paper',
   },
+  gold: {
+    key: 'gold',
+    name: 'Gold',
+    accent: '#f5b301',
+    accentRgb: '245, 179, 1',
+    accent2: '#fcd34d',
+    accent2Rgb: '252, 211, 77',
+    neutral: '#fffbeb',
+    glow: '0 0 40px rgba(245, 179, 1, 0.35)',
+    entrance: 'rise',
+    cursor: 'dot',
+    texture: 'paper',
+  },
 }
 
 export function getTheme(key: ThemeKey): ThemeConfig {

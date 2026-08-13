@@ -4,7 +4,9 @@
 // /notes/:slug  详情：Markdown 渲染（marked + DOMPurify，打包内渲染遵守 CSP）
 //
 // 设计上对齐现有子站语言：SiteAvatar 头像 + SplitHeading 标题 +
-// Reveal 进场 + ContactBar 页脚 + 路由主题（/notes 回落到 violet）。
+// Reveal 进场 + ContactBar 页脚 + 路由主题（/notes → gold 金色主题，
+// 由 registry/projects.ts 的 getThemeKeyForPath 解析）。动效接入全局
+// AmbientCanvas（registry 中 notes → goldenDrift）。
 // 数据源：/api/public-articles（公开只读，max-age=60）。
 // ============================================================
 import { useEffect, useMemo, useState } from 'react'
@@ -80,7 +82,7 @@ export default function Notes() {
     <div className="notes">
       {/* ── Hero ────────────────────────────────────────────── */}
       <section className="notes-hero">
-        <SiteAvatar siteId="portal" className="site-avatar-hero" />
+        <SiteAvatar siteId="notes" className="site-avatar-hero" />
         <span className="notes-badge">
           <i className="notes-badge-dot" /> JOURNAL · 持续书写
         </span>

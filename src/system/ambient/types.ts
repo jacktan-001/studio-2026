@@ -9,6 +9,7 @@ export type SiteId =
   | 'jack-wave'
   | 'jack-talk'
   | 'jack-craft'
+  | 'notes'
   | 'admin'
 
 export interface AmbientInit {
