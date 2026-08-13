@@ -3,7 +3,7 @@
 // 密码登录（x-admin-password，存 sessionStorage）→ 歌单管理 + 投稿审核
 // 风格跟随全站暗色玻璃体系
 // ============================================================
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MOOD_PLAYLISTS } from '../jack-wave/musicData'
 import { MONTHLY_SHARES } from '../jack-wave/monthlyData'
@@ -183,12 +183,50 @@ export default function Admin() {
 }
 
 // ── 歌单管理 ──────────────────────────────────────────────
+interface MoodSong {
+  id: string
+  title: string
+  artist?: string
+  duration?: string
+  appleArtworkUrl?: string
+  appleMusicUrl?: string
+}
+interface MoodPlaylist {
+  id: string
+  title: string
+  mood?: string
+  date?: string
+  note?: string
+  songList?: MoodSong[]
+}
+interface MonthlyTrack {
+  id: string
+  title: string
+  artist?: string
+  appleMusicUrl?: string
+}
+interface MonthlyShare {
+  id: string
+  monthNo?: number
+  monthCn?: string
+  monthEn?: string
+  titleCn?: string
+  titleEn?: string
+  tracks?: MonthlyTrack[]
+}
+interface PlaylistData {
+  moodPlaylists?: MoodPlaylist[]
+  monthlyShares?: MonthlyShare[]
+  allTags?: string[]
+}
+
 function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => void }) {
   const [draft, setDraft] = useState('')
   const [meta, setMeta] = useState<{ source?: string; updatedAt?: string }>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [valid, setValid] = useState<boolean | null>(null)
+  const [view, setView] = useState<'grid' | 'json'>('grid')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -199,9 +237,11 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
       if (json.data) {
         setDraft(JSON.stringify(json.data, null, 2))
         setMeta({ source: json.source, updatedAt: json.updatedAt || json.data.updatedAt })
+        setValid(true)
       } else {
         setDraft(JSON.stringify({ moodPlaylists: [], monthlyShares: [], allTags: [] }, null, 2))
         setMeta({ source: 'empty' })
+        setValid(true)
       }
     } catch (e) {
       if ((e as Error).message === 'AUTH') return
@@ -215,6 +255,14 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
     load()
   }, [load])
 
+  const parsed = useMemo<PlaylistData | null>(() => {
+    try {
+      return JSON.parse(draft) as PlaylistData
+    } catch {
+      return null
+    }
+  }, [draft])
+
   const onDraftChange = (v: string) => {
     setDraft(v)
     try {
@@ -227,16 +275,16 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
   }
 
   const save = async () => {
-    let parsed: unknown
+    let parsedJson: unknown
     try {
-      parsed = JSON.parse(draft)
+      parsedJson = JSON.parse(draft)
     } catch {
       onToast('err', 'JSON 格式错误，无法保存')
       return
     }
     setSaving(true)
     try {
-      const res = await api('/api/data', { method: 'PUT', body: JSON.stringify(parsed) })
+      const res = await api('/api/data', { method: 'PUT', body: JSON.stringify(parsedJson) })
       const json = await res.json()
       if (res.ok) {
         onToast('ok', '已保存到 KV')
@@ -300,6 +348,9 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
     e.target.value = ''
   }
 
+  const mood = parsed?.moodPlaylists || []
+  const monthly = parsed?.monthlyShares || []
+
   return (
     <section className="admin-panel">
       <div className="admin-panel-head">
@@ -307,16 +358,34 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
           <h2 className="admin-h2">歌单数据</h2>
           <p className="admin-meta">
             来源：
-            <span className="admin-tag">{meta.source === 'kv' ? '线上 KV' : meta.source === 'seed' ? '静态种子' : meta.source === 'empty' ? '空' : '—'}</span>
+            <span className="admin-tag">
+              {meta.source === 'kv' ? '线上 KV' : meta.source === 'seed' ? '静态种子' : meta.source === 'empty' ? '空' : '—'}
+            </span>
+            {' · 心情刊 '}
+            <span className="admin-tag">{mood.length}</span>
+            {' · 月度 '}
+            <span className="admin-tag">{monthly.length}</span>
             {meta.updatedAt && <> · 更新于 {new Date(meta.updatedAt).toLocaleString('zh-CN')}</>}
           </p>
         </div>
         <div className="admin-actions">
+          <button
+            className={`admin-btn ${view === 'grid' ? 'admin-btn--primary' : 'admin-btn--ghost'}`}
+            onClick={() => setView('grid')}
+          >
+            结构预览
+          </button>
+          <button
+            className={`admin-btn ${view === 'json' ? 'admin-btn--primary' : 'admin-btn--ghost'}`}
+            onClick={() => setView('json')}
+          >
+            JSON 编辑
+          </button>
           <button className="admin-btn admin-btn--ghost" onClick={loadSeed}>
-            载入静态种子
+            载入种子
           </button>
           <button className="admin-btn admin-btn--ghost" onClick={() => fileRef.current?.click()}>
-            导入 JSON
+            导入
           </button>
           <button className="admin-btn admin-btn--ghost" onClick={exportJson}>
             导出
@@ -330,7 +399,7 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
 
       {loading ? (
         <div className="admin-loading">读取中…</div>
-      ) : (
+      ) : view === 'json' ? (
         <>
           <textarea
             className="admin-textarea"
@@ -347,6 +416,101 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
             </button>
           </div>
         </>
+      ) : parsed ? (
+        <div className="pl-wrap">
+          {/* 心情歌单 */}
+          <div className="pl-group-head">
+            <h3 className="pl-h3">心情歌单</h3>
+            <span className="pl-group-count">{mood.length} 期</span>
+          </div>
+          {mood.length === 0 ? (
+            <div className="admin-empty">暂无心情歌单</div>
+          ) : (
+            <div className="pl-cards">
+              {mood.map((pl) => (
+                <div className="pl-card" key={pl.id}>
+                  <div className="pl-card-head">
+                    <span className="pl-card-id">{pl.id}</span>
+                    <span className="pl-card-title">{pl.title}</span>
+                    {pl.mood && <span className="pl-card-mood">{pl.mood}</span>}
+                  </div>
+                  <div className="pl-card-sub">
+                    {pl.date && <span>{pl.date}</span>}
+                    <span>{(pl.songList || []).length} 首</span>
+                  </div>
+                  {pl.note && <p className="pl-card-note">{pl.note}</p>}
+                  <ul className="pl-tracks">
+                    {(pl.songList || []).map((s) => (
+                      <li key={s.id} className="pl-track">
+                        {s.appleArtworkUrl ? (
+                          <img className="pl-track-art" src={s.appleArtworkUrl} alt="" loading="lazy" />
+                        ) : (
+                          <span className="pl-track-art pl-track-art--ph" aria-hidden="true">
+                            ♪
+                          </span>
+                        )}
+                        <span className="pl-track-title">{s.title}</span>
+                        <span className="pl-track-artist">{s.artist || '—'}</span>
+                        <span className="pl-track-dur">{s.duration || ''}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 月度精选 */}
+          <div className="pl-group-head" style={{ marginTop: 32 }}>
+            <h3 className="pl-h3">月度精选</h3>
+            <span className="pl-group-count">{monthly.length} 期</span>
+          </div>
+          {monthly.length === 0 ? (
+            <div className="admin-empty">暂无月度精选</div>
+          ) : (
+            <div className="pl-cards">
+              {monthly.map((m) => (
+                <div className="pl-card" key={m.id}>
+                  <div className="pl-card-head">
+                    <span className="pl-card-id">{m.monthCn || m.id}</span>
+                    <span className="pl-card-title">{m.titleCn || m.id}</span>
+                    {m.titleEn && <span className="pl-card-mood">{m.titleEn}</span>}
+                  </div>
+                  <div className="pl-card-sub">
+                    <span>{(m.tracks || []).length} 首</span>
+                  </div>
+                  <ul className="pl-tracks">
+                    {(m.tracks || []).map((t) => (
+                      <li key={t.id} className="pl-track">
+                        <span className="pl-track-art pl-track-art--ph" aria-hidden="true">
+                          ♪
+                        </span>
+                        <span className="pl-track-title">{t.title}</span>
+                        <span className="pl-track-artist">{t.artist || '—'}</span>
+                        {t.appleMusicUrl && (
+                          <a
+                            className="pl-track-link"
+                            href={t.appleMusicUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            ↗
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="pl-hint">
+            结构预览为只读。要增删歌曲或改文案，请切到「JSON 编辑」修改后保存。
+          </p>
+        </div>
+      ) : (
+        <div className="admin-empty">当前数据不是有效 JSON，请切到「JSON 编辑」修复。</div>
       )}
     </section>
   )
@@ -381,7 +545,6 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
   const [list, setList] = useState<Submission[]>([])
   const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 })
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'merged'>('all')
-  const [siteFilter, setSiteFilter] = useState<string>('all')
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -391,7 +554,6 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
     try {
       const qs = new URLSearchParams()
       if (filter !== 'all') qs.set('status', filter)
-      if (siteFilter !== 'all') qs.set('siteId', siteFilter)
       const suffix = qs.toString() ? `?${qs.toString()}` : ''
       const res = await api(`/api/submissions${suffix}`)
       const json = await res.json()
@@ -405,7 +567,7 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
     } finally {
       setLoading(false)
     }
-  }, [filter, siteFilter, onToast])
+  }, [filter, onToast])
 
   useEffect(() => {
     load()
@@ -473,7 +635,7 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
     <section className="admin-panel">
       <div className="admin-panel-head">
         <div>
-          <h2 className="admin-h2">用户投稿</h2>
+          <h2 className="admin-h2">Jack Wave 歌单投稿</h2>
           <p className="admin-meta">
             待审 <span className="admin-tag">{counts.pending}</span> · 通过 {counts.approved} · 拒绝{' '}
             {counts.rejected} · 共 {counts.total}
@@ -498,20 +660,6 @@ function SubmissionsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) =
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="admin-filters" style={{ marginTop: 8 }}>
-        {['all', 'jack-wave', 'jack-talk', 'jack-craft', 'jack-pose', 'jack-tan', 'studio'].map(
-          (s) => (
-            <button
-              key={s}
-              className={`admin-filter ${siteFilter === s ? 'is-active' : ''}`}
-              onClick={() => setSiteFilter(s)}
-            >
-              {s === 'all' ? '全部站点' : SITE_LABELS[s]}
-            </button>
-          ),
-        )}
       </div>
 
       {loading ? (
