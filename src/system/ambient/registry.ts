@@ -4,7 +4,7 @@ import { radarSweep } from './renderers/radarSweep'
 import { bokehDrift } from './renderers/bokehDrift'
 import { waveRibbons } from './renderers/waveRibbons'
 import { broadcastRings } from './renderers/broadcastRings'
-import { goldenDrift } from './renderers/goldenDrift'
+import { arcLattice } from './renderers/arcLattice'
 
 /**
  * siteId → renderer factory.
@@ -14,7 +14,7 @@ import { goldenDrift } from './renderers/goldenDrift'
  * - jack-wave    → waveRibbons (audio-reactive aurora)
  * - jack-talk    → broadcastRings (audio-reactive ON AIR pulses)
  * - jack-craft   → undefined (keeps its own hero-local generative canvas)
- * - notes        → goldenDrift (gold journal motes; gold-tinted via theme)
+ * - notes        → arcLattice (金色高压电弧网)
  * - admin        → undefined (inherits the base violet field only)
  */
 export const AMBIENT_REGISTRY: Partial<Record<SiteId, AmbientFactory>> = {
@@ -23,5 +23,5 @@ export const AMBIENT_REGISTRY: Partial<Record<SiteId, AmbientFactory>> = {
   'jack-pose': bokehDrift,
   'jack-wave': waveRibbons,
   'jack-talk': broadcastRings,
-  notes: goldenDrift,
+  notes: arcLattice,
 }

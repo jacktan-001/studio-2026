@@ -5617,7 +5617,7 @@ html.cursor-hover-active-host {
 }
 
 /* ── Notes · 金色电流感增强 ────────────────────────────────
-   与全局 goldenDrift 动效呼应：hero 边缘有淡金辉光，列表 hover 时
+   与全局 arcLattice 电弧网动效呼应：hero 边缘有淡金辉光，列表 hover 时
    产生金色发光边框，标题带轻微暖色光晕。 */
 .notes-hero::before {
   content: '';
@@ -5671,37 +5671,49 @@ html.cursor-hover-active-host {
   box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.25);
 }
 
-/* ── Notes · 电流感交互（滋啦颤动 / 高频闪烁 / 闪电过渡）─────────── */
-/* 1) 微电流颤动：高频、小幅、带阶梯感，像被轻微电击 */
+/* ── Notes · 电流感交互 v2（噼里啪啦：锯齿颤动 / 电光迸裂 / 电流涟漪 / 闪电划过）── */
+/* 1) 微电流锯齿颤动：更碎、更陡，像被轻微电击 */
 @keyframes elec-tremor {
   0%   { transform: translate(0, 0) rotate(0); }
-  15%  { transform: translate(0.8px, -0.6px) rotate(0.15deg); }
-  30%  { transform: translate(-0.7px, 0.5px) rotate(-0.12deg); }
-  45%  { transform: translate(0.6px, 0.7px) rotate(0.1deg); }
-  60%  { transform: translate(-0.5px, -0.4px) rotate(-0.08deg); }
-  75%  { transform: translate(0.4px, 0.5px) rotate(0.06deg); }
+  12%  { transform: translate(1px, -0.8px) rotate(0.2deg); }
+  24%  { transform: translate(-1px, 0.6px) rotate(-0.18deg); }
+  36%  { transform: translate(0.8px, 0.9px) rotate(0.14deg); }
+  48%  { transform: translate(-0.9px, -0.5px) rotate(-0.12deg); }
+  60%  { transform: translate(0.6px, 0.7px) rotate(0.1deg); }
+  72%  { transform: translate(-0.6px, -0.6px) rotate(-0.08deg); }
+  84%  { transform: translate(0.4px, 0.4px) rotate(0.05deg); }
   100% { transform: translate(0, 0) rotate(0); }
 }
-/* 2) 高频闪烁发光描边：亮金描边在瞬间噼啪明灭 */
+/* 2) 高频电光迸裂描边：亮金 + 白热在瞬间噼啪明灭 */
 @keyframes elec-flicker {
   0%   { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0), 0 0 0 0 rgba(var(--accent-rgb), 0); border-color: rgba(var(--accent-rgb), 0.3); }
-  20%  { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.95), 0 0 22px 3px rgba(var(--accent-rgb), 0.75); border-color: rgba(var(--accent-rgb), 0.95); }
-  40%  { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.2), 0 0 6px 0 rgba(var(--accent-rgb), 0.25); border-color: rgba(var(--accent-rgb), 0.3); }
-  60%  { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 1), 0 0 26px 4px rgba(var(--accent-rgb), 0.85); border-color: rgba(var(--accent-rgb), 1); }
-  80%  { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.35), 0 0 10px 1px rgba(var(--accent-rgb), 0.4); border-color: rgba(var(--accent-rgb), 0.45); }
+  18%  { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.95), 0 0 24px 3px rgba(var(--accent-rgb), 0.8); border-color: rgba(255, 255, 255, 0.95); }
+  34%  { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.2), 0 0 6px 0 rgba(var(--accent-rgb), 0.25); border-color: rgba(var(--accent-rgb), 0.3); }
+  52%  { box-shadow: 0 0 0 1px rgba(255, 255, 255, 1), 0 0 30px 5px rgba(var(--accent-rgb), 0.9); border-color: rgba(255, 255, 255, 1); }
+  70%  { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.35), 0 0 10px 1px rgba(var(--accent-rgb), 0.4); border-color: rgba(var(--accent-rgb), 0.45); }
   100% { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.5), 0 0 16px 2px rgba(var(--accent-rgb), 0.35); border-color: rgba(var(--accent-rgb), 0.6); }
 }
 .is-zapping {
-  animation: elec-tremor 0.2s steps(2, end) 1, elec-flicker 0.34s linear 1;
+  animation: elec-tremor 0.18s steps(3, end) 1, elec-flicker 0.32s linear 1;
   will-change: transform, box-shadow;
 }
-/* hover 时持续微弱的电流呼吸描边（区别于默认无边框） */
+/* 3) 悬停电流涟漪：沿边框金白脉冲 */
+@keyframes elec-ripple {
+  0%   { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.25), 0 0 6px rgba(var(--accent-rgb), 0.1); }
+  50%  { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 20px 2px rgba(var(--accent-rgb), 0.45); }
+  100% { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.25), 0 0 6px rgba(var(--accent-rgb), 0.1); }
+}
+.notes-item-link:hover,
+.notes-back:hover,
+.notes-chip:hover {
+  animation: elec-ripple 0.9s ease-in-out infinite;
+}
 .notes-item-link:hover,
 .notes-back:hover {
   border-color: rgba(var(--accent-rgb), 0.55) !important;
 }
 
-/* 3) 闪电划过式过渡：亮金色电光斜划全屏 + 点击点辉光 */
+/* 4) 闪电划过式过渡：主折线 + 2 条支线 + 全屏白闪 */
 .elec-swipe {
   position: fixed;
   inset: 0;
@@ -5714,9 +5726,9 @@ html.cursor-hover-active-host {
   inset: 0;
   background: radial-gradient(
     240px 240px at var(--ox, 50%) var(--oy, 50%),
-    rgba(var(--accent-rgb), 0.42),
-    rgba(var(--accent-rgb), 0.12) 36%,
-    transparent 62%
+    rgba(255, 255, 255, 0.5),
+    rgba(var(--accent-rgb), 0.18) 38%,
+    transparent 64%
   );
   animation: elec-flash 0.36s ease-out 1;
 }
@@ -5744,6 +5756,15 @@ html.cursor-hover-active-host {
   opacity: 0.7;
   animation-delay: 0.05s;
   animation-duration: 0.3s;
+  top: 6%;
+}
+.elec-swipe .elec-ray.c {
+  width: 15%;
+  opacity: 0.55;
+  animation-delay: 0.09s;
+  animation-duration: 0.26s;
+  top: -4%;
+  filter: blur(1px) drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.8));
 }
 @keyframes elec-swipe-move {
   0%   { transform: translateX(-50%) skewX(-14deg); opacity: 0; }
@@ -5756,7 +5777,7 @@ html.cursor-hover-active-host {
   100% { opacity: 0; }
 }
 
-/* 4) 点击迸发的细小电火花 */
+/* 5) 点击迸发的分支电火花（距离各异，向四周飞散） */
 .elec-spark {
   position: fixed;
   z-index: 96;
@@ -5771,19 +5792,22 @@ html.cursor-hover-active-host {
   width: 2px;
   height: 2px;
   background: #fff;
-  box-shadow: 0 0 8px 2px rgba(var(--accent-rgb), 0.95);
+  box-shadow: 0 0 9px 2px rgba(var(--accent-rgb), 0.95);
   border-radius: 50%;
   transform-origin: 0 0;
-  animation: elec-spark-fly 0.3s ease-out forwards;
+  animation: elec-spark-fly 0.3s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
 }
 @keyframes elec-spark-fly {
   0%   { transform: rotate(var(--a)) translateY(0) scale(1); opacity: 1; }
-  100% { transform: rotate(var(--a)) translateY(26px) scale(0.2); opacity: 0; }
+  100% { transform: rotate(var(--a)) translateY(var(--d, 26px)) scale(0.15); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .is-zapping { animation: elec-flicker 0.2s linear 1; }
   .elec-swipe .elec-ray { display: none; }
+  .notes-item-link:hover,
+  .notes-back:hover,
+  .notes-chip:hover { animation: none; }
 }
 
 /* ── 文章详情 ────────────────────────────────────────────── */

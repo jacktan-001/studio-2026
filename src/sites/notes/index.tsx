@@ -6,7 +6,7 @@
 // 设计上对齐现有子站语言：SiteAvatar 头像 + SplitHeading 标题 +
 // Reveal 进场 + ContactBar 页脚 + 路由主题（/notes → gold 金色主题，
 // 由 registry/projects.ts 的 getThemeKeyForPath 解析）。动效接入全局
-// AmbientCanvas（registry 中 notes → goldenDrift）。
+// AmbientCanvas（registry 中 notes → arcLattice 金色高压电弧网）。
 // 数据源：/api/public-articles（公开只读，max-age=60）。
 // ============================================================
 import { useEffect, useMemo, useState } from 'react'
@@ -103,34 +103,47 @@ function ElectricSwipe({ x, y, onDone }: { x: number; y: number; onDone: () => v
       <span className="elec-flash" />
       <span className="elec-ray" />
       <span className="elec-ray b" />
+      <span className="elec-ray c" />
     </div>
   )
 }
 
-/** 点击迸发的细小电火花，从点击点向四周飞散。 */
+/** 点击迸发的分支电火花，从点击点向四周飞散（距离/角度各异）。 */
 function SparkBurst({ x, y, onDone }: { x: number; y: number; onDone: () => void }) {
   useEffect(() => {
     const t = window.setTimeout(onDone, 340)
     return () => window.clearTimeout(t)
   }, [onDone])
-  const N = 10
+  const N = 14
   return (
     <span className="elec-spark" style={{ left: `${x}px`, top: `${y}px` }} aria-hidden="true">
-      {Array.from({ length: N }).map((_, i) => (
-        <i key={i} style={{ ['--a' as string]: `${((360 / N) * i).toFixed(1)}deg` } as any} />
-      ))}
+      {Array.from({ length: N }).map((_, i) => {
+        const jitter = Math.random() * 18 - 9
+        const dist = (14 + Math.random() * 22).toFixed(1)
+        return (
+          <i
+            key={i}
+            style={
+              {
+                ['--a' as string]: `${((360 / N) * i + jitter).toFixed(1)}deg`,
+                ['--d' as string]: `${dist}px`,
+              } as any
+            }
+          />
+        )
+      })}
     </span>
   )
 }
 
-/** 提供 zap(元素) / fireSwipe(x,y) 以及需要渲染的 overlay 节点。 */
+/** 提供 zap(元素) / fireCrackle(x,y) 以及需要渲染的 overlay 节点。 */
 function useElectric() {
   const [swipe, setSwipe] = useState<{ x: number; y: number; id: number } | null>(null)
   const [sparks, setSparks] = useState<{ x: number; y: number; id: number } | null>(null)
 
   const zap = (el: Element | null) => zapEl(el)
 
-  const fireSwipe = (x: number, y: number) => {
+  const fireCrackle = (x: number, y: number) => {
     setSparks({ x, y, id: Date.now() })
     setSwipe({ x, y, id: Date.now() })
   }
@@ -146,7 +159,7 @@ function useElectric() {
     </>
   )
 
-  return { zap, fireSwipe, overlay }
+  return { zap, fireCrackle, overlay }
 }
 
 // ── 列表页 ─────────────────────────────────────────────────
@@ -210,7 +223,7 @@ export default function Notes() {
                   onMouseEnter={(e) => elec.zap(e.currentTarget)}
                   onClick={(e) => {
                     e.preventDefault()
-                    elec.fireSwipe(e.clientX, e.clientY)
+                    elec.fireCrackle(e.clientX, e.clientY)
                     window.setTimeout(() => navigate(`/notes/${a.slug}`), 320)
                   }}
                 >
@@ -246,7 +259,7 @@ export default function Notes() {
           to="/"
           className="notes-back"
           onMouseDown={(e) => elec.zap(e.currentTarget)}
-          onClick={(e) => elec.fireSwipe(e.clientX, e.clientY)}
+          onClick={(e) => elec.fireCrackle(e.clientX, e.clientY)}
         >
           ← 返回工作室
         </TransitionLink>
@@ -305,7 +318,7 @@ export function NoteArticle() {
             to="/notes"
             className="notes-back"
             onMouseDown={(e) => elec.zap(e.currentTarget)}
-            onClick={(e) => elec.fireSwipe(e.clientX, e.clientY)}
+            onClick={(e) => elec.fireCrackle(e.clientX, e.clientY)}
           >
             ← 返回随笔列表
           </TransitionLink>
@@ -341,7 +354,7 @@ export function NoteArticle() {
           to="/notes"
           className="notes-back"
           onMouseDown={(e) => elec.zap(e.currentTarget)}
-          onClick={(e) => elec.fireSwipe(e.clientX, e.clientY)}
+          onClick={(e) => elec.fireCrackle(e.clientX, e.clientY)}
         >
           ← 返回随笔列表
         </TransitionLink>
