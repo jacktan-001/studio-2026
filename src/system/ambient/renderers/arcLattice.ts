@@ -27,7 +27,10 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
     vy: number
     r: number
     ph: number
-    heat: number
+    /** 放电增亮 0..1：平时 0（暗淡），放电瞬间置 1 后平滑衰减 */
+    flash: number
+    /** 连锁触发时刻（ms），0 = 无待触发 */
+    chainAt: number
   }
   let nodes: Node[] = []
 
@@ -62,7 +65,8 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
         vy: (Math.random() - 0.5) * 0.08,
         r: 1 + Math.random() * 1.4,
         ph: Math.random() * Math.PI * 2,
-        heat: 0,
+        flash: 0,
+        chainAt: 0,
       })
     }
     sparks = []
@@ -119,6 +123,37 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
     }
   }
 
+  const CHAIN_RADIUS = 200 // 连锁传播最大半径（css px）
+  const CHAIN_DELAY = 80 // 相邻节点连锁的阶梯延迟（ms）
+  const CHAIN_MAX = 4 // 除源/端点外最多连锁的节点数（合计 2–6 个）
+
+  /** 放电瞬间增亮相关节点，并向最近邻连锁传播（2–6 节点接连增亮后平滑恢复）。 */
+  const discharge = (i: number, j: number | null, t: number) => {
+    const flashNode = (idx: number) => {
+      const nd = nodes[idx]
+      if (!nd) return
+      nd.flash = 1
+      nd.chainAt = 0
+    }
+    flashNode(i)
+    if (j !== null && j >= 0) flashNode(j)
+
+    const src = nodes[i]
+    if (!src) return
+    const ordered = nodes
+      .map((nd, idx) => ({ idx, d: Math.hypot(nd.x - src.x, nd.y - src.y) }))
+      .filter((o) => o.idx !== i && o.idx !== (j ?? -1) && o.d > 0 && o.d < CHAIN_RADIUS)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, CHAIN_MAX)
+    ordered.forEach((o, k) => {
+      const target = nodes[o.idx]
+      const at = t + (k + 1) * CHAIN_DELAY
+      if (target.chainAt === 0 || target.chainAt > at) {
+        target.chainAt = at
+      }
+    })
+  }
+
   return {
     resize(nw, nh) {
       w = nw
@@ -132,7 +167,7 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
       const px = pointer.active ? pointer.x : -99999
       const py = pointer.active ? pointer.y : -99999
 
-      // ── drift + heat decay ──
+      // ── drift + 放电增亮衰减 + 连锁触发 ──
       for (const nd of nodes) {
         nd.x += nd.vx * (0.4 + 0.6 * intensity) * k
         nd.y += nd.vy * (0.4 + 0.6 * intensity) * k
@@ -140,7 +175,11 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
         if (nd.x > w + 20) nd.x = -20
         if (nd.y < -20) nd.y = h + 20
         if (nd.y > h + 20) nd.y = -20
-        nd.heat = Math.max(0, nd.heat - 0.02 * k)
+        if (nd.chainAt > 0 && t >= nd.chainAt) {
+          nd.chainAt = 0
+          nd.flash = 1
+        }
+        nd.flash = Math.max(0, nd.flash - 0.045 * k)
       }
 
       // ── 光标：拉弧到最近节点 + 提高附近放电 ──
@@ -156,10 +195,10 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
         }
         if (nearest >= 0 && nearestD < 260) {
           const nd = nodes[nearest]
-          nd.heat = Math.min(1, nd.heat + 0.35)
-          // 周期性主电弧
+          // 周期性主电弧：放电瞬间增亮该节点并连锁
           if (t - nextDischarge > 0 && Math.random() < 0.05 * (0.5 + 0.5 * intensity)) {
             addBolt(px, py, nd.x, nd.y, true)
+            discharge(nearest, null, t)
           }
         }
       }
@@ -179,7 +218,10 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
             j = q
           }
         }
-        if (j >= 0) addBolt(a.x, a.y, nodes[j].x, nodes[j].y)
+        if (j >= 0) {
+          addBolt(a.x, a.y, nodes[j].x, nodes[j].y)
+          discharge(i, j, t)
+        }
       }
 
       // ── 电弧推进 + 火花迸发 ──
@@ -245,12 +287,13 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
         ctx.fill()
       }
 
-      // ── 电极节点 ──
+      // ── 电极节点（平时暗淡，放电瞬间增亮） ──
       for (const nd of nodes) {
         const pulse = reduced ? 0.5 : 0.5 + 0.5 * Math.sin(time * 1.4 + nd.ph)
-        const boost = nd.heat
-        const o = (0.25 + 0.4 * pulse + boost * 0.5) * (0.4 + 0.6 * intensity)
-        const rad = nd.r * (1 + 0.4 * pulse + boost * 0.8)
+        const boost = nd.flash
+        // 平时暗淡：仅微弱呼吸；放电时 boost→1 短暂增亮，随后平滑恢复
+        const o = (0.07 + 0.08 * pulse + boost * 0.8) * (0.35 + 0.65 * intensity)
+        const rad = nd.r * (1 + 0.25 * pulse + boost * 1.1)
         const grd = ctx.createRadialGradient(nd.x, nd.y, 0, nd.x, nd.y, rad * 6)
         grd.addColorStop(0, `rgba(${br},${bg2},${bb},${o})`)
         grd.addColorStop(1, `rgba(${ar},${ag},${ab},0)`)
@@ -259,7 +302,7 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
         ctx.beginPath()
         ctx.arc(nd.x, nd.y, rad * 6, 0, Math.PI * 2)
         ctx.fill()
-        ctx.fillStyle = `rgba(${HOT[0]},${HOT[1]},${HOT[2]},${Math.min(1, o * 0.7 + boost * 0.5)})`
+        ctx.fillStyle = `rgba(${HOT[0]},${HOT[1]},${HOT[2]},${Math.min(1, (0.07 + 0.08 * pulse) * (0.35 + 0.65 * intensity) + boost * 0.9)})`
         ctx.beginPath()
         ctx.arc(nd.x, nd.y, rad * 0.55, 0, Math.PI * 2)
         ctx.fill()
