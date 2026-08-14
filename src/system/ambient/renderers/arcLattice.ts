@@ -52,7 +52,7 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
   }
   let bolts: Bolt[] = []
 
-  let nextDischarge = 0
+  let nextCursorChain = 0
 
   const seed = () => {
     const n = Math.min(52, Math.max(28, Math.round((w * h) / 26000)))
@@ -71,7 +71,7 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
     }
     sparks = []
     bolts = []
-    nextDischarge = 0
+    nextCursorChain = 0
   }
 
   /** 中点位移递归细分，生成锯齿闪电折线。 */
@@ -123,35 +123,33 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
     }
   }
 
-  const CHAIN_RADIUS = 200 // 连锁传播最大半径（css px）
-  const CHAIN_DELAY = 80 // 相邻节点连锁的阶梯延迟（ms）
-  const CHAIN_MAX = 4 // 除源/端点外最多连锁的节点数（合计 2–6 个）
+  const CHAIN_RADIUS = 170 // 节点间串联的最近邻搜索半径（css px）
+  const CHAIN_DELAY = 70 // 串联节点阶梯增亮延迟（ms）
+  const CHAIN_MAX = 6 // 串联链最长节点数（含首节点，2–6）
 
-  /** 放电瞬间增亮相关节点，并向最近邻连锁传播（2–6 节点接连增亮后平滑恢复）。 */
-  const discharge = (i: number, j: number | null, t: number) => {
-    const flashNode = (idx: number) => {
-      const nd = nodes[idx]
-      if (!nd) return
-      nd.flash = 1
-      nd.chainAt = 0
-    }
-    flashNode(i)
-    if (j !== null && j >= 0) flashNode(j)
-
-    const src = nodes[i]
-    if (!src) return
-    const ordered = nodes
-      .map((nd, idx) => ({ idx, d: Math.hypot(nd.x - src.x, nd.y - src.y) }))
-      .filter((o) => o.idx !== i && o.idx !== (j ?? -1) && o.d > 0 && o.d < CHAIN_RADIUS)
-      .sort((a, b) => a.d - b.d)
-      .slice(0, CHAIN_MAX)
-    ordered.forEach((o, k) => {
-      const target = nodes[o.idx]
-      const at = t + (k + 1) * CHAIN_DELAY
-      if (target.chainAt === 0 || target.chainAt > at) {
-        target.chainAt = at
+  /** 构建从 startIdx 出发的节点串联链：沿最近邻逐跳，最多 maxLen 个节点。 */
+  const buildChain = (startIdx: number, maxLen: number): number[] => {
+    const chain = [startIdx]
+    const visited = new Set<number>([startIdx])
+    let cur = startIdx
+    for (let step = 0; step < maxLen - 1; step++) {
+      const c = nodes[cur]
+      let best = -1
+      let bestD = CHAIN_RADIUS
+      for (let q = 0; q < nodes.length; q++) {
+        if (visited.has(q)) continue
+        const d = Math.hypot(nodes[q].x - c.x, nodes[q].y - c.y)
+        if (d < bestD) {
+          bestD = d
+          best = q
+        }
       }
-    })
+      if (best < 0) break
+      chain.push(best)
+      visited.add(best)
+      cur = best
+    }
+    return chain
   }
 
   return {
@@ -182,7 +180,7 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
         nd.flash = Math.max(0, nd.flash - 0.045 * k)
       }
 
-      // ── 光标：拉弧到最近节点 + 提高附近放电 ──
+      // ── 光标：触发多节点电弧串联（仅在鼠标附近节点） ──
       let nearest = -1
       let nearestD = 1e9
       if (pointer.active) {
@@ -193,18 +191,30 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
             nearest = i
           }
         }
-        if (nearest >= 0 && nearestD < 260) {
-          const nd = nodes[nearest]
-          // 周期性主电弧：放电瞬间增亮该节点并连锁
-          if (t - nextDischarge > 0 && Math.random() < 0.05 * (0.5 + 0.5 * intensity)) {
-            addBolt(px, py, nd.x, nd.y, true)
-            discharge(nearest, null, t)
+        if (nearest >= 0 && nearestD < 260 && t - nextCursorChain > 0) {
+          if (Math.random() < 0.14 * (0.4 + 0.6 * intensity)) {
+            nextCursorChain = t + 150
+            const chain = buildChain(nearest, CHAIN_MAX)
+            // 光标 → 首节点主电弧
+            addBolt(px, py, nodes[chain[0]].x, nodes[chain[0]].y, true)
+            for (let k = 0; k < chain.length; k++) {
+              const nd = nodes[chain[k]]
+              // 沿链逐段画弧
+              if (k < chain.length - 1) {
+                addBolt(nd.x, nd.y, nodes[chain[k + 1]].x, nodes[chain[k + 1]].y)
+              }
+              // 阶梯增亮
+              const at = t + k * CHAIN_DELAY
+              if (nd.chainAt === 0 || nd.chainAt > at) nd.chainAt = at
+              // 火花迸射
+              burst(nd.x, nd.y)
+            }
           }
         }
       }
 
-      // ── 节点间随机微放电 ──
-      if (t - nextDischarge > 0 && Math.random() < 0.02 + 0.06 * intensity) {
+      // ── 节点间随机微放电（单弧，仅两端点增亮，不连锁） ──
+      if (Math.random() < 0.02 + 0.06 * intensity) {
         const i = Math.floor(Math.random() * nodes.length)
         const a = nodes[i]
         // 找最近邻
@@ -220,7 +230,8 @@ export const arcLattice: AmbientFactory = ({ ctx, theme, reduced }) => {
         }
         if (j >= 0) {
           addBolt(a.x, a.y, nodes[j].x, nodes[j].y)
-          discharge(i, j, t)
+          nodes[i].flash = 1
+          nodes[j].flash = 1
         }
       }
 
