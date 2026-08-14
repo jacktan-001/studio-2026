@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MOOD_PLAYLISTS } from '../jack-wave/musicData'
 import { MONTHLY_SHARES } from '../jack-wave/monthlyData'
+import { searchAppleMusic, formatDuration, type AppleSearchResult } from '../jack-wave/trackMeta'
 
 const TOKEN_KEY = 'studio_admin_pw'
 
@@ -182,16 +183,18 @@ export default function Admin() {
   )
 }
 
-// ── 歌单管理（纯内容管理，无代码/JSON 编辑）──────────────────
-interface MoodSongRow {
+// ── 歌单管理（两级结构：歌单为一级，歌曲为二级）──────────────
+interface SongRow {
   id: string
   title: string
   artist?: string
   duration?: string
   src?: string
+  appleTrackId?: number | string | null
   appleMusicUrl?: string
   applePreviewUrl?: string
   appleArtworkUrl?: string
+  durationMs?: number | null
 }
 interface MoodPlaylistRow {
   id: string
@@ -201,14 +204,18 @@ interface MoodPlaylistRow {
   note?: string
   author?: string
   cover?: string
-  songList: MoodSongRow[]
+  songList: SongRow[]
 }
 interface MonthlyTrackRow {
   id: string
   title: string
   artist?: string
   appleMusicUrl?: string
-  appleTrackId?: string | null
+  appleTrackId?: string | number | null
+  applePreviewUrl?: string
+  appleArtworkUrl?: string
+  duration?: string
+  durationMs?: number | null
 }
 interface MonthlyShareRow {
   id: string
@@ -254,12 +261,306 @@ function TField({
   )
 }
 
+// ── Apple Music 选歌器（搜索 / 试听 / 选择）──────────────────
+function AppleSongPicker({
+  onPick,
+  onClose,
+}: {
+  onPick: (picked: Omit<SongRow, 'id'>) => void
+  onClose: () => void
+}) {
+  const [q, setQ] = useState('')
+  const [results, setResults] = useState<AppleSearchResult[]>([])
+  const [phase, setPhase] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [playingId, setPlayingId] = useState<number | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  const search = useCallback(async (term: string) => {
+    const t = term.trim()
+    if (!t) {
+      setResults([])
+      setPhase('idle')
+      return
+    }
+    setPhase('loading')
+    try {
+      const r = await searchAppleMusic(t, 20)
+      setResults(r)
+      setPhase('done')
+    } catch {
+      setPhase('error')
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause()
+    }
+  }, [])
+
+  const preview = (trackId: number, url: string | null) => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (playingId === trackId) {
+      audio.pause()
+      setPlayingId(null)
+      return
+    }
+    if (!url) return
+    audio.src = url
+    void audio.play().catch(() => {})
+    setPlayingId(trackId)
+  }
+
+  const choose = (r: AppleSearchResult) => {
+    onPick({
+      title: r.trackName,
+      artist: r.artistName,
+      duration: formatDuration(r.trackTimeMillis),
+      src: r.previewUrl || '/audio/ambient.wav',
+      appleTrackId: r.trackId,
+      appleMusicUrl: r.trackViewUrl || '',
+      applePreviewUrl: r.previewUrl || '',
+      appleArtworkUrl: r.artworkUrl100,
+      durationMs: r.trackTimeMillis,
+    })
+  }
+
+  return (
+    <div className="apicker" role="dialog" aria-modal="true" aria-label="从 Apple Music 选歌">
+      <div className="apicker-head">
+        <h3 className="pl-h3">从 Apple Music 选歌</h3>
+        <button className="admin-btn admin-btn--ghost" onClick={onClose}>
+          关闭
+        </button>
+      </div>
+      <form
+        className="apicker-search"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void search(q)
+        }}
+      >
+        <input
+          className="admin-input"
+          autoFocus
+          placeholder="搜索歌名 / 艺人 / 专辑…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <button className="admin-btn admin-btn--primary" type="submit" disabled={phase === 'loading'}>
+          搜索
+        </button>
+      </form>
+
+      {phase === 'loading' ? (
+        <div className="admin-loading">搜索中…</div>
+      ) : phase === 'error' ? (
+        <div className="admin-empty">搜索失败，请重试</div>
+      ) : phase === 'idle' ? (
+        <div className="admin-empty">输入关键词，从 Apple Music 曲库检索歌曲</div>
+      ) : results.length === 0 ? (
+        <div className="admin-empty">没有匹配结果</div>
+      ) : (
+        <ul className="apicker-list">
+          {results.map((r) => (
+            <li className="apicker-item" key={r.trackId}>
+              {r.artworkUrl100 ? (
+                <img className="apicker-art" src={r.artworkUrl100} alt="" loading="lazy" />
+              ) : (
+                <span className="apicker-art apicker-art--ph">♪</span>
+              )}
+              <div className="apicker-meta">
+                <div className="apicker-title" title={r.trackName}>
+                  {r.trackName}
+                </div>
+                <div className="apicker-sub">
+                  {r.artistName}
+                  {r.collectionName ? ` · ${r.collectionName}` : ''}
+                </div>
+              </div>
+              <span className="apicker-dur">{formatDuration(r.trackTimeMillis)}</span>
+              <button
+                className="admin-btn admin-btn--ghost"
+                title="试听 30s"
+                disabled={!r.previewUrl}
+                onClick={() => preview(r.trackId, r.previewUrl)}
+              >
+                {playingId === r.trackId ? '⏸' : '▶'}
+              </button>
+              <button className="admin-btn admin-btn--ok" onClick={() => choose(r)}>
+                选择
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <audio ref={audioRef} onEnded={() => setPlayingId(null)} hidden />
+    </div>
+  )
+}
+
+// ── 歌曲行（二级：试听 / 换歌 / 排序 / 删除 / 改名）──────────
+function SongEditorRow({
+  song,
+  index,
+  total,
+  onChange,
+  onDelete,
+  onMove,
+  onReplace,
+}: {
+  song: SongRow
+  index: number
+  total: number
+  onChange: (s: SongRow) => void
+  onDelete: () => void
+  onMove: (dir: -1 | 1) => void
+  onReplace: () => void
+}) {
+  const [playing, setPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const previewUrl = song.applePreviewUrl || song.src || ''
+
+  const toggle = () => {
+    const a = audioRef.current
+    if (!a) return
+    if (playing) {
+      a.pause()
+      setPlaying(false)
+      return
+    }
+    if (!previewUrl) return
+    a.src = previewUrl
+    void a.play().catch(() => {})
+    setPlaying(true)
+  }
+
+  return (
+    <div className="pl-song-row">
+      {song.appleArtworkUrl ? (
+        <img className="pl-track-art" src={song.appleArtworkUrl} alt="" loading="lazy" />
+      ) : (
+        <span className="pl-track-art pl-track-art--ph">♪</span>
+      )}
+      <div className="pl-song-main">
+        <input
+          className="admin-input"
+          placeholder="歌名"
+          value={song.title || ''}
+          onChange={(e) => onChange({ ...song, title: e.target.value })}
+        />
+        <input
+          className="admin-input"
+          placeholder="艺人"
+          value={song.artist || ''}
+          onChange={(e) => onChange({ ...song, artist: e.target.value })}
+        />
+      </div>
+      <div className="pl-song-side">
+        <span className="pl-song-dur">{song.duration || formatDuration(song.durationMs)}</span>
+        <button className="admin-btn admin-btn--ghost" title="试听" disabled={!previewUrl} onClick={toggle}>
+          {playing ? '⏸' : '▶'}
+        </button>
+        <button className="admin-btn admin-btn--ghost" onClick={onReplace} title="从 Apple Music 重新选歌">
+          换一首
+        </button>
+        <button className="admin-btn admin-btn--ghost" onClick={() => onMove(-1)} disabled={index === 0}>
+          ↑
+        </button>
+        <button className="admin-btn admin-btn--ghost" onClick={() => onMove(1)} disabled={index === total - 1}>
+          ↓
+        </button>
+        <button className="admin-btn admin-btn--danger" onClick={onDelete}>
+          删
+        </button>
+      </div>
+      <audio ref={audioRef} onEnded={() => setPlaying(false)} hidden />
+    </div>
+  )
+}
+
+// ── 歌曲列表编辑器（二级视图）────────────────────────────────
+function SongListEditor({
+  kind,
+  plId,
+  songs,
+  onChange,
+}: {
+  kind: 'mood' | 'monthly'
+  plId: string
+  songs: SongRow[]
+  onChange: (next: SongRow[]) => void
+}) {
+  const [picker, setPicker] = useState<{ mode: 'add' } | { mode: 'replace'; idx: number } | null>(null)
+
+  const newId = () => `${plId}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
+
+  const handlePick = (picked: Omit<SongRow, 'id'>) => {
+    if (!picker) return
+    if (picker.mode === 'add') {
+      onChange([...songs, { ...picked, id: newId() }])
+    } else {
+      const idx = picker.idx
+      onChange(songs.map((s, i) => (i === idx ? { ...picked, id: s.id } : s)))
+    }
+    setPicker(null)
+  }
+
+  const move = (idx: number, dir: -1 | 1) => {
+    const j = idx + dir
+    if (j < 0 || j >= songs.length) return
+    const next = songs.slice()
+    const [tmp] = next.splice(idx, 1)
+    next.splice(j, 0, tmp)
+    onChange(next)
+  }
+
+  return (
+    <div>
+      <div className="pl-edit-songs-head" style={{ marginBottom: 12 }}>
+        <span className="pl-group-count">共 {songs.length} 首 · 支持试听 / 换歌 / 排序 / 删除</span>
+        <button className="admin-btn admin-btn--primary" onClick={() => setPicker({ mode: 'add' })}>
+          ＋ 从 Apple Music 添加歌曲
+        </button>
+      </div>
+
+      {songs.length === 0 ? (
+        <div className="admin-empty">还没有歌曲，点右上角「从 Apple Music 添加歌曲」开始</div>
+      ) : (
+        songs.map((s, i) => (
+          <SongEditorRow
+            key={s.id || `${kind}-${i}`}
+            song={s}
+            index={i}
+            total={songs.length}
+            onChange={(next) => onChange(songs.map((x, k) => (k === i ? next : x)))}
+            onDelete={() => onChange(songs.filter((_, k) => k !== i))}
+            onMove={(d) => move(i, d)}
+            onReplace={() => setPicker({ mode: 'replace', idx: i })}
+          />
+        ))
+      )}
+
+      {picker && (
+        <div className="apicker-overlay" onClick={() => setPicker(null)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <AppleSongPicker onPick={handlePick} onClose={() => setPicker(null)} />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => void }) {
   const [data, setData] = useState<PlaylistData>({ moodPlaylists: [], monthlyShares: [], allTags: [] })
   const [meta, setMeta] = useState<{ source?: string; updatedAt?: string }>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
+  /** 二级视图：当前打开的歌单（null = 歌单列表） */
+  const [open, setOpen] = useState<{ kind: 'mood' | 'monthly'; id: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -341,6 +642,59 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
       d.monthlyShares.push({ id: `m${String(n).padStart(2, '0')}`, monthNo: n, monthCn: `${n}月`, monthEn: '', titleCn: '', titleEn: '', author: '', cover: '', tracks: [] })
     })
 
+  // ── 二级视图：管理歌单内的歌曲 ──
+  if (open) {
+    const kind = open.kind
+    const id = open.id
+    const target =
+      kind === 'mood' ? data.moodPlaylists.find((p) => p.id === id) : data.monthlyShares.find((m) => m.id === id)
+    if (!target) return null
+    const title =
+      kind === 'mood'
+        ? (target as MoodPlaylistRow).title
+        : (target as MonthlyShareRow).titleCn || (target as MonthlyShareRow).monthCn || ''
+    const songs: SongRow[] = kind === 'mood' ? (target as MoodPlaylistRow).songList : (target as MonthlyShareRow).tracks
+
+    const setSongs = (next: SongRow[]) =>
+      upd((d) => {
+        if (kind === 'mood') {
+          const p = d.moodPlaylists.find((x) => x.id === id)
+          if (p) p.songList = next
+        } else {
+          const m = d.monthlyShares.find((x) => x.id === id)
+          if (m) m.tracks = next
+        }
+      })
+
+    return (
+      <section className="admin-panel">
+        <div className="admin-panel-head">
+          <div>
+            <h2 className="admin-h2">歌曲管理 · {title}</h2>
+            <p className="admin-meta">
+              二级 · 歌曲在歌单下独立增删改 · <span className="admin-tag">{songs.length} 首</span>
+              {dirty && (
+                <span className="admin-tag" style={{ marginLeft: 6 }}>
+                  未保存
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="admin-actions">
+            <button className="admin-btn admin-btn--primary" onClick={save} disabled={saving || !dirty}>
+              {saving ? '保存中…' : '保存'}
+            </button>
+            <button className="admin-btn admin-btn--ghost" onClick={() => setOpen(null)}>
+              ← 返回歌单列表
+            </button>
+          </div>
+        </div>
+        <SongListEditor kind={kind} plId={id} songs={songs} onChange={setSongs} />
+      </section>
+    )
+  }
+
+  // ── 一级视图：歌单列表（编辑歌单信息）──
   return (
     <section className="admin-panel">
       <div className="admin-panel-head">
@@ -377,7 +731,7 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
         <div className="admin-loading">读取中…</div>
       ) : (
         <div className="pl-edit-wrap">
-          {/* ── 心情歌单 ── */}
+          {/* ── 心情歌单（一级） ── */}
           <div className="pl-group-head">
             <h3 className="pl-h3">心情歌单</h3>
             <span className="pl-group-count">{data.moodPlaylists.length} 期</span>
@@ -386,14 +740,19 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
             <div className="pl-edit-card" key={pl.id || i}>
               <div className="pl-edit-card-head">
                 <span className="pl-card-id">心情刊 {pl.id}</span>
-                <button
-                  className="admin-btn admin-btn--danger"
-                  onClick={() => {
-                    if (confirm(`删除歌单「${pl.title}」？`)) upd((d) => d.moodPlaylists.splice(i, 1))
-                  }}
-                >
-                  删除歌单
-                </button>
+                <div className="pl-card-foot-actions">
+                  <button className="admin-btn admin-btn--primary" onClick={() => setOpen({ kind: 'mood', id: pl.id })}>
+                    管理歌曲（{pl.songList.length}）
+                  </button>
+                  <button
+                    className="admin-btn admin-btn--danger"
+                    onClick={() => {
+                      if (confirm(`删除歌单「${pl.title}」？`)) upd((d) => d.moodPlaylists.splice(i, 1))
+                    }}
+                  >
+                    删除歌单
+                  </button>
+                </div>
               </div>
 
               <div className="pl-edit-grid">
@@ -404,53 +763,10 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
                 <TField label="封面 URL" value={pl.cover} placeholder="留空用首曲目封面" onChange={(v) => upd((d) => (d.moodPlaylists[i].cover = v))} wide />
               </div>
               <TField label="手记" value={pl.note} onChange={(v) => upd((d) => (d.moodPlaylists[i].note = v))} wide />
-
-              <div className="pl-edit-songs-head">
-                <span className="pl-group-count">歌曲 {pl.songList.length}</span>
-                <button
-                  className="admin-btn admin-btn--ghost"
-                  onClick={() =>
-                    upd((d) =>
-                      d.moodPlaylists[i].songList.push({
-                        id: `${pl.id}-${d.moodPlaylists[i].songList.length + 1}`,
-                        title: '',
-                        artist: '',
-                        duration: '',
-                        src: '/audio/ambient.wav',
-                        appleMusicUrl: '',
-                        applePreviewUrl: '',
-                        appleArtworkUrl: '',
-                      }),
-                    )
-                  }
-                >
-                  ＋ 歌曲
-                </button>
-              </div>
-              {pl.songList.map((s, j) => (
-                <div className="pl-edit-song" key={s.id || j}>
-                  <div className="pl-edit-grid">
-                    <TField label="歌名" value={s.title} onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].title = v))} />
-                    <TField label="艺人" value={s.artist} onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].artist = v))} />
-                    <TField label="时长" value={s.duration} placeholder="3:30" onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].duration = v))} />
-                  </div>
-                  <div className="pl-edit-grid">
-                    <TField label="Apple 链接" value={s.appleMusicUrl} onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].appleMusicUrl = v))} wide />
-                    <TField label="试听 URL" value={s.applePreviewUrl} onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].applePreviewUrl = v))} wide />
-                    <TField label="封面 URL" value={s.appleArtworkUrl} onChange={(v) => upd((d) => (d.moodPlaylists[i].songList[j].appleArtworkUrl = v))} wide />
-                    <button
-                      className="admin-btn admin-btn--danger"
-                      onClick={() => upd((d) => d.moodPlaylists[i].songList.splice(j, 1))}
-                    >
-                      删
-                    </button>
-                  </div>
-                </div>
-              ))}
             </div>
           ))}
 
-          {/* ── 月度精选 ── */}
+          {/* ── 月度精选（一级） ── */}
           <div className="pl-group-head" style={{ marginTop: 32 }}>
             <h3 className="pl-h3">月度精选</h3>
             <span className="pl-group-count">{data.monthlyShares.length} 期</span>
@@ -459,14 +775,19 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
             <div className="pl-edit-card" key={m.id || i}>
               <div className="pl-edit-card-head">
                 <span className="pl-card-id">{m.monthCn || m.id}</span>
-                <button
-                  className="admin-btn admin-btn--danger"
-                  onClick={() => {
-                    if (confirm(`删除月度「${m.titleCn || m.monthCn}」？`)) upd((d) => d.monthlyShares.splice(i, 1))
-                  }}
-                >
-                  删除月度
-                </button>
+                <div className="pl-card-foot-actions">
+                  <button className="admin-btn admin-btn--primary" onClick={() => setOpen({ kind: 'monthly', id: m.id })}>
+                    管理歌曲（{m.tracks.length}）
+                  </button>
+                  <button
+                    className="admin-btn admin-btn--danger"
+                    onClick={() => {
+                      if (confirm(`删除月度「${m.titleCn || m.monthCn}」？`)) upd((d) => d.monthlyShares.splice(i, 1))
+                    }}
+                  >
+                    删除月度
+                  </button>
+                </div>
               </div>
 
               <div className="pl-edit-grid">
@@ -476,45 +797,12 @@ function PlaylistsPanel({ onToast }: { onToast: (k: 'ok' | 'err', m: string) => 
                 <TField label="作者" value={m.author} placeholder="Jack Tan" onChange={(v) => upd((d) => (d.monthlyShares[i].author = v))} />
                 <TField label="封面 URL" value={m.cover} placeholder="留空用首曲目封面" onChange={(v) => upd((d) => (d.monthlyShares[i].cover = v))} wide />
               </div>
-
-              <div className="pl-edit-songs-head">
-                <span className="pl-group-count">歌曲 {m.tracks.length}</span>
-                <button
-                  className="admin-btn admin-btn--ghost"
-                  onClick={() =>
-                    upd((d) =>
-                      d.monthlyShares[i].tracks.push({
-                        id: `${m.id}-${d.monthlyShares[i].tracks.length + 1}`,
-                        title: '',
-                        artist: '',
-                        appleMusicUrl: '',
-                        appleTrackId: null,
-                      }),
-                    )
-                  }
-                >
-                  ＋ 歌曲
-                </button>
-              </div>
-              {m.tracks.map((t, j) => (
-                <div className="pl-edit-song" key={t.id || j}>
-                  <div className="pl-edit-grid">
-                    <TField label="歌名" value={t.title} onChange={(v) => upd((d) => (d.monthlyShares[i].tracks[j].title = v))} />
-                    <TField label="艺人" value={t.artist} onChange={(v) => upd((d) => (d.monthlyShares[i].tracks[j].artist = v))} />
-                    <TField label="Apple 链接" value={t.appleMusicUrl} onChange={(v) => upd((d) => (d.monthlyShares[i].tracks[j].appleMusicUrl = v))} wide />
-                    <button
-                      className="admin-btn admin-btn--danger"
-                      onClick={() => upd((d) => d.monthlyShares[i].tracks.splice(j, 1))}
-                    >
-                      删
-                    </button>
-                  </div>
-                </div>
-              ))}
             </div>
           ))}
 
-          <p className="pl-hint">所有修改需点右上「保存」才会写入线上 KV；前端 ≤60s 内可见。</p>
+          <p className="pl-hint">
+            歌单为一级（此处编辑信息），点「管理歌曲」进入二级管理歌曲；歌曲可从 Apple Music 曲库检索选择、试听并自动带入 URL 等字段。所有修改需点右上「保存」写入线上 KV，前端 ≤60s 内可见。
+          </p>
         </div>
       )}
     </section>

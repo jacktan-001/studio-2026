@@ -121,3 +121,52 @@ export function formatDuration(ms: number | null | undefined): string {
   const s = total % 60
   return `${m}:${String(s).padStart(2, '0')}`
 }
+
+// ── Apple Music 曲库搜索（供 admin 歌单选歌使用）──────────────
+
+export interface AppleSearchResult {
+  trackId: number
+  trackName: string
+  artistName: string
+  collectionName: string
+  /** 已升级为 600x600 的封面 URL */
+  artworkUrl100: string
+  /** 30s 试听（m4a），可能为空 */
+  previewUrl: string | null
+  /** Apple Music 网页链接 */
+  trackViewUrl: string | null
+  trackTimeMillis: number | null
+}
+
+/** 将 100x100 封面升级为 600x600（Apple artwork URL 尺寸约定）。 */
+function upscaleArtwork(url: string | null | undefined): string {
+  if (!url) return ''
+  return url.replace('100x100', '600x600')
+}
+
+/**
+ * 关键词搜索 Apple Music 曲库（iTunes Search API，无需鉴权，CORS 允许）。
+ * 固定 CN storefront，保证中文曲库可搜；结果返回试听/封面/时长/Apple 链接。
+ */
+export async function searchAppleMusic(term: string, limit = 20): Promise<AppleSearchResult[]> {
+  const q = term.trim()
+  if (!q) return []
+  const url =
+    `https://itunes.apple.com/search?term=${encodeURIComponent(q)}` +
+    `&media=music&entity=song&limit=${limit}&country=CN`
+  const r = await fetch(url, { headers: { Accept: 'application/json' } })
+  if (!r.ok) throw new Error('搜索失败（HTTP ' + r.status + '）')
+  const j = (await r.json()) as { results?: any[] }
+  return (j.results || [])
+    .filter((x) => x?.wrapperType === 'track' && x?.trackId)
+    .map((x) => ({
+      trackId: Number(x.trackId),
+      trackName: x.trackName || x.trackCensoredName || 'Untitled',
+      artistName: x.artistName || '',
+      collectionName: x.collectionName || '',
+      artworkUrl100: upscaleArtwork(x.artworkUrl100),
+      previewUrl: x.previewUrl || null,
+      trackViewUrl: x.trackViewUrl || null,
+      trackTimeMillis: typeof x.trackTimeMillis === 'number' ? x.trackTimeMillis : null,
+    }))
+}

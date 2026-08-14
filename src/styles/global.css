@@ -5952,6 +5952,59 @@ html.cursor-hover-active-host {
 }
 .pl-edit-song .pl-edit-grid { align-items: end; }
 
+/* ── 歌单两级结构：歌曲行 + Apple Music 选歌器 ─────────────── */
+.pl-card-foot-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pl-song-row {
+  display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center;
+  border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px;
+  background: rgba(255,255,255,0.02); margin-bottom: 8px;
+}
+.pl-song-main { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pl-song-side { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.pl-song-dur { font-family: var(--font-mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* 选歌器：overlay + 面板 */
+.apicker-overlay {
+  position: fixed; inset: 0; z-index: 120; background: rgba(0,0,0,0.62);
+  display: flex; align-items: flex-start; justify-content: center; padding: 8vh 16px 16px;
+  overflow-y: auto;
+}
+.apicker {
+  width: 100%; max-width: 720px; background: var(--bg-2);
+  border: 1px solid var(--line); border-radius: 16px; padding: 18px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+}
+.apicker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.apicker-search { display: flex; gap: 10px; margin-bottom: 14px; }
+.apicker-search .admin-input { flex: 1; }
+.apicker-list {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;
+  gap: 8px; max-height: 56vh; overflow-y: auto;
+}
+.apicker-item {
+  display: grid; grid-template-columns: 44px 1fr auto auto auto; gap: 10px; align-items: center;
+  border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 8px 10px;
+  background: rgba(255,255,255,0.02);
+}
+.apicker-art {
+  width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: var(--surface-2);
+}
+.apicker-art--ph {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 16px;
+}
+.apicker-meta { min-width: 0; }
+.apicker-title { font-size: 13.5px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.apicker-sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.apicker-dur { font-family: var(--font-mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+@media (max-width: 720px) {
+  .pl-song-row { grid-template-columns: 40px 1fr; }
+  .pl-song-side { grid-column: 1 / -1; justify-content: flex-start; }
+  .apicker-item { grid-template-columns: 40px 1fr auto; }
+  .apicker-dur { display: none; }
+}
+
 /* ── 门户页脚常驻入口（Notes / 管理后台，无条件显示）────── */
 .portal-footer-links {
   display: flex; align-items: center; justify-content: center;
