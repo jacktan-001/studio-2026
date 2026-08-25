@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { AudioProvider } from './core/AudioProvider'
 import { MotionPrefsProvider } from './core/MotionPrefsProvider'
 import { ThemeProvider } from './core/ThemeProvider'
@@ -19,7 +19,6 @@ import JackTalk from './sites/jack-talk'
 import JackCraft from './sites/jack-craft'
 import Admin from './sites/admin'
 import Notes, { NoteArticle } from './sites/notes'
-import JackTrip from './sites/jack-trip'
 import { ProjectIntro } from './sites/ProjectIntro'
 import { ProjectStub } from './sites/ProjectStub'
 
@@ -38,8 +37,6 @@ import { ProjectStub } from './sites/ProjectStub'
  * players stacked at the bottom.
  */
 export default function App() {
-  const location = useLocation()
-  const inJackTrip = location.pathname.startsWith('/jack-trip')
   return (
     <AudioProvider>
       <MotionPrefsProvider>
@@ -48,9 +45,9 @@ export default function App() {
             <AmbientCanvas />
             <BackgroundField />
             <Cursor />
-            {!inJackTrip && <GlassNav />}
+            <GlassNav />
             <WavePlayerProvider>
-              <main className="site-root" style={inJackTrip ? { padding: 0, maxWidth: '100%', margin: 0 } : undefined}>
+              <main className="site-root">
                 <Routes>
                   <Route path="/" element={<Portal />} />
                   <Route path="/jack-tan" element={<JackTan />} />
@@ -63,13 +60,12 @@ export default function App() {
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/notes" element={<Notes />} />
                   <Route path="/notes/:slug" element={<NoteArticle />} />
-                  <Route path="/jack-trip/*" element={<JackTrip />} />
                   <Route path="/:projectId/intro" element={<ProjectIntro />} />
                   <Route path="/:projectId" element={<ProjectStub />} />
                   <Route path="*" element={<Portal />} />
                 </Routes>
               </main>
-              {!inJackTrip && <WavePlayerOrb />}
+              <WavePlayerOrb />
             </WavePlayerProvider>
           </ThemeProvider>
         </SmoothScroll>
