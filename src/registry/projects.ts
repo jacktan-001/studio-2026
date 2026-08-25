@@ -143,6 +143,28 @@ export const PROJECTS: ProjectMeta[] = [
     ],
     tech: ['React 19', 'Cloudflare KV', 'Markdown', 'Vite'],
   },
+    {
+    id: 'jack-trip',
+    name: 'Jack Trip',
+    shortName: 'Trip',
+    href: '/jack-trip',
+    status: 'live',
+    tagline: '多人旅行协作中枢',
+    role: 'Travel Collab',
+    themeKey: 'orange',
+    year: '2026',
+    description:
+      'Jack Trip 是面向多人出行的协作中枢：行程规划、AA 记账与自动结算、攻略收藏、成员权限、物品清单、投票决策与地图路线，一站式搞定 group trip。',
+    features: [
+      '行程时间线：拖拽排序与状态流转',
+      '多人记账：多币种换算与四种分摊',
+      '自动结算：贪心最小化转账笔数',
+      '攻略收藏：评分、必去清单与 @ 评论',
+      '成员与权限：身份切换演示',
+      '物品清单 / 投票决策 / 地图路线',
+    ],
+    tech: ['React 19', 'TypeScript', 'Tailwind v4', 'localStorage', 'Cloudflare Pages'],
+  },
 ]
 
 /** Map a route pathname to a theme key. Portal + jack-tan default to violet. */
@@ -168,6 +190,7 @@ export type SiteId =
   | 'jack-craft'
   | 'notes'
   | 'admin'
+  | 'jack-trip'
 
 export function getSiteIdForPath(pathname: string): SiteId {
   if (pathname === '/notes' || pathname.startsWith('/notes/')) return 'notes'
